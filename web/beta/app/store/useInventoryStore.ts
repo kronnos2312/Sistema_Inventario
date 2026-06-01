@@ -12,6 +12,7 @@ type State = {
   clearShowInventory: () => void;
   saveInventory: (data: InventoryItem) => Promise<boolean>;
   getOutInventory: (data: WInventory) => Promise<void>;
+  bulkOutInventory: (items: WInventory[]) => Promise<{ success: number; failed: number }>;
   deleteInventory: (data: InventoryItem) => Promise<void>;
 };
 
@@ -49,6 +50,42 @@ export const useInventoryStore = create<State>((set, get) => ({
     } catch (error) {
       useToastStore.getState().showToast('Error al retirar inventario: ' + error, 'error');
     }
+  },
+
+  bulkOutInventory: async (items: WInventory[]): Promise<{ success: number; failed: number }> => {
+    const results = await Promise.allSettled(
+      items.map(item =>
+        fetch(`${API_BASE_URL}/inventory/out`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(item),
+        }).then(r => r.json())
+      )
+    );
+
+    const success = results.filter(
+      r => r.status === 'fulfilled' && r.value?.codeName !== 'error'
+    ).length;
+    const failed = items.length - success;
+
+    await get().fetchInventory();
+    get().clearShowInventory();
+
+    if (success > 0 && failed === 0) {
+      useToastStore.getState().showToast(
+        `${success} artículo${success !== 1 ? 's' : ''} retirado${success !== 1 ? 's' : ''} correctamente`,
+        'success'
+      );
+    } else if (success > 0 && failed > 0) {
+      useToastStore.getState().showToast(
+        `${success} retirado${success !== 1 ? 's' : ''}, ${failed} con error`,
+        'info'
+      );
+    } else {
+      useToastStore.getState().showToast('No se pudo procesar ningún retiro', 'error');
+    }
+
+    return { success, failed };
   },
 
   saveInventory: async (data: InventoryItem): Promise<boolean> => {

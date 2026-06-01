@@ -278,7 +278,7 @@ export default function InventoryTable() {
         onClose={() => setOpen(false)}
         title={selectedItem.id ? 'Editar Registro de Inventario' : 'Nuevo Registro de Inventario'}
       >
-        <InventoryEditor initialData={selectedItem} onSave={() => setOpen(false)} />
+        <InventoryEditor initialData={selectedItem} onSave={() => setOpen(false)} onCancel={() => setOpen(false)} />
       </Modal>
 
       {/* CONFIRMACIÓN ELIMINAR */}

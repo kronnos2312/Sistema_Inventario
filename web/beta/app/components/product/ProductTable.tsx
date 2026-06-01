@@ -198,7 +198,7 @@ export default function ProductTable() {
 
       {/* MODAL EDITOR */}
       <Modal isOpen={open} onClose={() => setOpen(false)} title={selectedItem.id ? 'Editar Producto' : 'Nuevo Producto'}>
-        <ProductEditor initialData={selectedItem} onSave={() => setOpen(false)} />
+        <ProductEditor initialData={selectedItem} onSave={() => setOpen(false)} onCancel={() => setOpen(false)} />
       </Modal>
 
       {/* CONFIRMACIÓN ELIMINAR */}

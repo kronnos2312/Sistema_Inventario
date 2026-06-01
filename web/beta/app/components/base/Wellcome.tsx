@@ -31,7 +31,8 @@ type QuickAction = {
   description: string;
   icon: ReactNode;
   action: () => void;
-  color: string;
+  colorIcon: string;
+  colorBorder: string;
 };
 
 export default function Welcome({ onNavigate }: Props) {
@@ -49,7 +50,8 @@ export default function Welcome({ onNavigate }: Props) {
     {
       label: 'Registrar Producto',
       description: 'Agrega un nuevo producto al catálogo',
-      color: 'bg-indigo-600 hover:bg-indigo-700',
+      colorIcon: 'bg-indigo-100 text-indigo-600',
+      colorBorder: 'border-indigo-200 hover:border-indigo-400 hover:bg-indigo-50',
       icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -61,7 +63,8 @@ export default function Welcome({ onNavigate }: Props) {
     {
       label: 'Registrar Entrada',
       description: 'Ingresa artículos al inventario',
-      color: 'bg-emerald-600 hover:bg-emerald-700',
+      colorIcon: 'bg-emerald-100 text-emerald-600',
+      colorBorder: 'border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50',
       icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -73,7 +76,8 @@ export default function Welcome({ onNavigate }: Props) {
     {
       label: 'Registrar Retiro',
       description: 'Registra la salida de un artículo',
-      color: 'bg-amber-600 hover:bg-amber-700',
+      colorIcon: 'bg-amber-100 text-amber-600',
+      colorBorder: 'border-amber-200 hover:border-amber-400 hover:bg-amber-50',
       icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -85,7 +89,8 @@ export default function Welcome({ onNavigate }: Props) {
     {
       label: 'Ver Ventas',
       description: 'Consulta el historial de movimientos',
-      color: 'bg-purple-600 hover:bg-purple-700',
+      colorIcon: 'bg-purple-100 text-purple-600',
+      colorBorder: 'border-purple-200 hover:border-purple-400 hover:bg-purple-50',
       icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -130,36 +135,36 @@ export default function Welcome({ onNavigate }: Props) {
   ];
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[70vh] px-6 py-12 text-center bg-gradient-to-b from-slate-900 to-slate-800">
+    <div className="flex flex-col items-center justify-center min-h-[70vh] px-6 py-12 text-center bg-white">
       {/* HERO */}
       <div className="mb-8">
-        <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+        <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-md">
           <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
               d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
           </svg>
         </div>
-        <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-2">
+        <h1 className="text-3xl md:text-4xl font-extrabold text-slate-800 mb-1">
           {appTitle}
         </h1>
-        <p className="text-indigo-300 font-semibold text-lg">{appClient}</p>
-        <p className="text-slate-400 text-sm mt-2">Gestiona tu inventario de forma eficiente</p>
+        <p className="text-indigo-600 font-semibold text-base">{appClient}</p>
+        <p className="text-slate-400 text-sm mt-1">Gestiona tu inventario de forma eficiente</p>
       </div>
 
       {/* ACCIONES RÁPIDAS */}
       <div className="w-full max-w-md mb-8">
         <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-4">Acciones Rápidas</p>
         <div className="grid grid-cols-2 gap-3">
-          {actions.map(({ label, description, icon, action, color }) => (
+          {actions.map(({ label, description, icon, action, colorIcon, colorBorder }) => (
             <button
               key={label}
               onClick={action}
-              className={`${color} text-white rounded-xl p-4 flex flex-col items-start gap-2 transition shadow-sm text-left`}
+              className={`bg-white border ${colorBorder} rounded-xl p-4 flex flex-col items-start gap-2 transition shadow-sm text-left`}
             >
-              <span className="bg-white/20 rounded-lg p-1.5">{icon}</span>
+              <span className={`${colorIcon} rounded-lg p-1.5`}>{icon}</span>
               <div>
-                <p className="text-sm font-semibold">{label}</p>
-                <p className="text-xs text-white/70">{description}</p>
+                <p className="text-sm font-semibold text-slate-700">{label}</p>
+                <p className="text-xs text-slate-400">{description}</p>
               </div>
             </button>
           ))}
@@ -172,7 +177,7 @@ export default function Welcome({ onNavigate }: Props) {
           <button
             key={tab}
             onClick={() => onNavigate?.(tab)}
-            className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-lg transition border border-white/20"
+            className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-medium rounded-lg transition border border-slate-200"
           >
             {icon}
             {label}
@@ -192,13 +197,13 @@ export default function Welcome({ onNavigate }: Props) {
         }
       >
         {editor === 'product' && (
-          <ProductEditor initialData={emptyProduct} onSave={closeModal} />
+          <ProductEditor initialData={emptyProduct} onSave={closeModal} onCancel={closeModal} />
         )}
         {editor === 'inventory' && (
-          <InventoryEditor initialData={emptyInventory} onSave={closeModal} />
+          <InventoryEditor initialData={emptyInventory} onSave={closeModal} onCancel={closeModal} />
         )}
         {editor === 'withdrawal' && (
-          <ManualInventory initialData={emptyW} onSend={closeModal} />
+          <ManualInventory initialData={emptyW} onSend={closeModal} onCancel={closeModal} />
         )}
       </Modal>
     </div>

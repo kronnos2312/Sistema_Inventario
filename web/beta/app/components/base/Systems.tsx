@@ -23,6 +23,7 @@ export default function Systems({ imagePreview, onFileChange, onClose }: Systems
       {/* Imagen y selector */}
       <div className="flex flex-col items-center gap-4">
         {imagePreview ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={imagePreview}
             alt="Vista previa"

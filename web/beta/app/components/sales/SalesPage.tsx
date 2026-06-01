@@ -2,18 +2,14 @@
 
 import React, { useEffect, useState } from 'react';
 import { useInventoryStore } from '@/app/store/useInventoryStore';
-import { WInventory } from '@/app/model/WithdrawInventory';
-import Modal from '../base/context/Modal';
-import ManualInventory from './ManualInventory';
+import MultiWithdrawalPanel from './MultiWithdrawalPanel';
 
 type SortKey = 'barcode' | 'product' | 'brand' | 'price' | 'arrivalDate' | 'outDate';
 type SortDir = 'asc' | 'desc';
 
-const emptyW: WInventory = { barCode: '', dateOut: '' };
-
 export default function SalesPage() {
   const { inventory, fetchInventory } = useInventoryStore();
-  const [open, setOpen] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -122,6 +118,7 @@ export default function SalesPage() {
 
   return (
     <div className="p-6 bg-slate-50 min-h-screen">
+
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-6 gap-4">
         <div>
@@ -129,16 +126,25 @@ export default function SalesPage() {
           <p className="text-sm text-slate-500 mt-1">Historial de salidas y retiros de inventario</p>
         </div>
         <button
-          onClick={() => setOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition shadow-sm"
+          onClick={() => setPanelOpen(v => !v)}
+          className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition shadow-sm ${
+            panelOpen
+              ? 'bg-indigo-100 text-indigo-700 border border-indigo-200 hover:bg-indigo-200'
+              : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+          }`}
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M17 16l4-4m0 0l-4-4m4 4H7" />
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round"
+              d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
-          Registrar Retiro
+          {panelOpen ? 'Ocultar panel' : 'Retiro Múltiple'}
         </button>
       </div>
+
+      {/* PANEL RETIRO MÚLTIPLE */}
+      {panelOpen && (
+        <MultiWithdrawalPanel onClose={() => setPanelOpen(false)} />
+      )}
 
       {/* STATS */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -154,7 +160,7 @@ export default function SalesPage() {
         ))}
       </div>
 
-      {/* CONTROLES */}
+      {/* CONTROLES TABLA */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <input
           type="text"
@@ -174,7 +180,7 @@ export default function SalesPage() {
         </select>
       </div>
 
-      {/* TABLA */}
+      {/* TABLA HISTORIAL */}
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
         <table className="min-w-full text-sm">
           <thead className="bg-slate-100 border-b border-slate-200">
@@ -259,11 +265,6 @@ export default function SalesPage() {
           </button>
         </div>
       </div>
-
-      {/* MODAL RETIRO */}
-      <Modal isOpen={open} onClose={() => setOpen(false)} title="Registrar Retiro / Salida">
-        <ManualInventory initialData={emptyW} onSend={() => setOpen(false)} />
-      </Modal>
     </div>
   );
 }

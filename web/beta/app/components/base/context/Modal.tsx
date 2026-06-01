@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 type ModalProps = {
   isOpen: boolean;
@@ -9,156 +9,106 @@ type ModalProps = {
   children: React.ReactNode;
 };
 
-export default function Modal({
-  isOpen,
-  onClose,
-  title,
-  children,
-}: ModalProps) {
+export default function Modal({ isOpen, onClose, title, children }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
-
-  // Posición real del modal
   const [position, setPosition] = useState({ x: 0, y: 0 });
-
   const [dragging, setDragging] = useState(false);
-
-  // Diferencia exacta entre cursor y esquina del modal
   const offset = useRef({ x: 0, y: 0 });
 
-  /**
-   * Centra el modal SOLO cuando se abre
-   */
   useEffect(() => {
     if (isOpen && modalRef.current) {
       const rect = modalRef.current.getBoundingClientRect();
-
       setPosition({
-        x: window.innerWidth / 2 - rect.width / 2,
-        y: window.innerHeight / 2 - rect.height / 2,
+        x: Math.max(16, window.innerWidth / 2 - rect.width / 2),
+        y: Math.max(16, window.innerHeight / 2 - rect.height / 2),
       });
     }
   }, [isOpen]);
 
-  /**
-   * Cierra con ESC y bloquea scroll
-   */
   useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-
+    const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     if (isOpen) {
       document.body.style.overflow = 'hidden';
-      window.addEventListener('keydown', handleEsc);
+      window.addEventListener('keydown', onEsc);
     }
-
     return () => {
-      document.body.style.overflow = 'auto';
-      window.removeEventListener('keydown', handleEsc);
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', onEsc);
     };
   }, [isOpen, onClose]);
 
-  /**
-   * Inicia el drag
-   */
   const onMouseDown = (e: React.MouseEvent) => {
-    if (!modalRef.current) return;
-
     setDragging(true);
-
-    offset.current = {
-      x: e.clientX - position.x,
-      y: e.clientY - position.y,
-    };
+    offset.current = { x: e.clientX - position.x, y: e.clientY - position.y };
   };
 
-  /**
-   * Mueve el modal siguiendo EXACTAMENTE el cursor
-   */
-  const onMouseMove = (e: MouseEvent) => {
-    if (!dragging) return;
+  const onMouseMove = useCallback((e: MouseEvent) => {
+    setPosition({ x: e.clientX - offset.current.x, y: e.clientY - offset.current.y });
+  }, []);
 
-    setPosition({
-      x: e.clientX - offset.current.x,
-      y: e.clientY - offset.current.y,
-    });
-  };
-
-  const onMouseUp = () => setDragging(false);
+  const onMouseUp = useCallback(() => setDragging(false), []);
 
   useEffect(() => {
     if (dragging) {
       window.addEventListener('mousemove', onMouseMove);
       window.addEventListener('mouseup', onMouseUp);
     }
-
     return () => {
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
     };
-  }, [dragging]);
+  }, [dragging, onMouseMove, onMouseUp]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay">
+    <div
+      className="modal-backdrop-enter fixed inset-0 z-[1000] bg-slate-900/50 backdrop-blur-[2px]"
+      onClick={onClose}
+    >
       <div
         ref={modalRef}
-        className={`modal-container ${dragging ? 'dragging' : ''}`}
-        style={{
-          left: position.x,
-          top: position.y,
-        }}
-        onClick={(e) => e.stopPropagation()}
+        className={`modal-panel-enter fixed w-[calc(100vw-2rem)] max-w-[600px] max-h-[92vh] flex flex-col bg-white rounded-2xl shadow-2xl ring-1 ring-slate-200/80 overflow-hidden ${dragging ? 'cursor-grabbing select-none opacity-[0.97]' : ''}`}
+        style={{ left: position.x, top: position.y }}
+        onClick={e => e.stopPropagation()}
       >
-        <header className="modal-header" onMouseDown={onMouseDown}>
-          <h3>{title}</h3>
-          <button onClick={onClose}>✕</button>
+        {/* Accent bar top */}
+        <div className="h-[3px] bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-400 flex-shrink-0" />
+
+        {/* Header */}
+        <header
+          className={`flex items-center justify-between px-5 py-3.5 border-b border-slate-100 flex-shrink-0 ${dragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+          onMouseDown={onMouseDown}
+        >
+          <div className="flex items-center gap-2.5">
+            {/* Grip dots */}
+            <div className="grid grid-cols-2 gap-[3px] opacity-25 flex-shrink-0">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="w-[4px] h-[4px] rounded-full bg-slate-500" />
+              ))}
+            </div>
+            <h3 className="text-[15px] font-semibold text-slate-800 leading-tight">
+              {title}
+            </h3>
+          </div>
+
+          <button
+            onMouseDown={e => e.stopPropagation()}
+            onClick={onClose}
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+            aria-label="Cerrar"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </header>
 
-        <section className="modal-content">{children}</section>
+        {/* Body */}
+        <section className="flex-1 overflow-y-auto p-5 scrollbar-thin">
+          {children}
+        </section>
       </div>
-
-      <style jsx>{`
-        .modal-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(15, 23, 42, 0.6);
-          z-index: 1000;
-        }
-
-        .modal-container {
-          position: fixed;
-          background: white;
-          width: 100%;
-          max-width: 640px;
-          max-height: 90vh;
-          border-radius: 14px;
-          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-          display: flex;
-          flex-direction: column;
-        }
-
-        .modal-container.dragging {
-          cursor: grabbing;
-          opacity: 0.95;
-        }
-
-        .modal-header {
-          background: linear-gradient(135deg, #0f172a, #1e293b);
-          color: white;
-          padding: 1rem 1.25rem;
-          display: flex;
-          justify-content: space-between;
-          cursor: grab;
-          user-select: none;
-        }
-
-        .modal-content {
-          padding: 1.25rem;
-          overflow-y: auto;
-        }
-      `}</style>
     </div>
   );
 }

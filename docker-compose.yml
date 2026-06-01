@@ -1,18 +1,79 @@
 version: '3.8'
 
+# ──────────────────────────────────────────────────────────────
+#  REDES
+# ──────────────────────────────────────────────────────────────
+networks:
+  app-net:
+    driver: bridge
+
+# ──────────────────────────────────────────────────────────────
+#  VOLÚMENES
+# ──────────────────────────────────────────────────────────────
+volumes:
+  pgdata:
+
+# ──────────────────────────────────────────────────────────────
+#  SERVICIOS
+# ──────────────────────────────────────────────────────────────
 services:
+
+  # ── BASE DE DATOS ────────────────────────────────────────────
+  db:
+    image: postgres:14
+    container_name: tuzonapcgamer-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mydatabase
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+    ports:
+      - "5432:5432"          # Expone la BD al host para desarrollo local
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql   # Script de inicialización
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myuser -d mydatabase"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── BACKEND (Spring Boot) ────────────────────────────────────
   backend:
     build:
-      context: ./server/inventory
+      context: ./server/beta
+    container_name: tuzonapcgamer-backend
+    restart: unless-stopped
     ports:
       - "8080:8080"
-    container_name: tuzonapcgamer-backend
-    extra_hosts:
-      - "host.docker.internal:host-gateway"  # Permite acceso al host en Linux también
+    depends_on:
+      db:
+        condition: service_healthy   # Espera a que la BD esté lista
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/mydatabase
+      SPRING_DATASOURCE_USERNAME: myuser
+      SPRING_DATASOURCE_PASSWORD: mypassword
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: sysinventarios
+    networks:
+      - app-net
 
+  # ── FRONTEND (Next.js) ───────────────────────────────────────
   frontend:
     build:
-      context: ./web/tuzonapcgamerweb
+      context: ./web/beta
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+        NEXT_PUBLIC_LOGO: /img/Testing_LOGO.png
+        NEXT_PUBLIC_SITE_TITLE: TuZonaPCGamer
+        NEXT_PUBLIC_SITE_CLIENT: TuZona PC Gamer
+    container_name: tuzonapcgamer-frontend
+    restart: unless-stopped
     ports:
       - "3000:3000"
-    container_name: tuzonapcgamer-frontend
+    depends_on:
+      - backend
+    networks:
+      - app-net

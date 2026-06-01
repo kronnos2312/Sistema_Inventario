@@ -8,28 +8,46 @@ import { userProductStore } from '@/app/store/userProductStore';
 type Props = {
   initialData: InventoryItem;
   onSave?: (data: InventoryItem) => void;
+  onCancel?: () => void;
 };
 
 type Errors = Partial<Record<keyof InventoryItem | 'productId', string>>;
 
-const Field = ({
-  label, required, error, children,
-}: { label: string; required?: boolean; error?: string; children: React.ReactNode }) => (
-  <div>
-    <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">
-      {label} {required && <span className="text-red-400 normal-case">*</span>}
-    </label>
+const inputCls = (err?: string) =>
+  `w-full px-4 py-2.5 border rounded-xl text-sm placeholder:text-slate-400 transition-all duration-150 focus:outline-none focus:ring-2 ${
+    err
+      ? 'border-red-400 bg-red-50/50 focus:ring-red-400/25 focus:border-red-400'
+      : 'border-slate-200 bg-white hover:border-slate-300 focus:ring-indigo-500/25 focus:border-indigo-500'
+  }`;
+
+const Label = ({ children, required }: { children: React.ReactNode; required?: boolean }) => (
+  <label className="flex items-center gap-1 text-sm font-medium text-slate-700 mb-1.5">
     {children}
-    {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+    {required && <span className="text-red-400 text-xs leading-none">*</span>}
+  </label>
+);
+
+const FieldError = ({ msg }: { msg?: string }) =>
+  msg ? (
+    <p className="mt-1.5 flex items-center gap-1 text-xs text-red-500">
+      <svg className="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      {msg}
+    </p>
+  ) : null;
+
+const SectionHeader = ({ icon, title }: { icon: React.ReactNode; title: string }) => (
+  <div className="flex items-center gap-2 mb-4">
+    <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center flex-shrink-0">
+      {icon}
+    </div>
+    <h3 className="text-sm font-semibold text-slate-700">{title}</h3>
+    <div className="flex-1 h-px bg-slate-100 ml-1" />
   </div>
 );
 
-const inputCls = (err?: string) =>
-  `w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition ${
-    err ? 'border-red-400 bg-red-50' : 'border-slate-300 bg-white'
-  }`;
-
-export default function InventoryEditor({ initialData, onSave }: Props) {
+export default function InventoryEditor({ initialData, onSave, onCancel }: Props) {
   const [item, setItem] = useState<InventoryItem>(initialData);
   const [errors, setErrors] = useState<Errors>({});
   const [loading, setLoading] = useState(false);
@@ -88,26 +106,48 @@ export default function InventoryEditor({ initialData, onSave }: Props) {
   };
 
   return (
-    <div className="space-y-5">
-      {/* DATOS DE INVENTARIO */}
+    <div className="flex flex-col gap-5">
+
+      {/* ── Sección 1: Datos del registro ── */}
       <div>
-        <h3 className="text-sm font-semibold text-slate-700 mb-3 pb-2 border-b border-slate-200">
-          Datos del Registro
-        </h3>
+        <SectionHeader
+          title="Datos del registro"
+          icon={
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          }
+        />
+
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Cantidad" required error={errors.quantity}>
+          {/* Cantidad */}
+          <div>
+            <Label required>
+              <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+              </svg>
+              Cantidad
+            </Label>
             <input
               type="number"
               name="quantity"
               value={item.quantity}
               onChange={handleChange}
               min={0}
-              className={inputCls(errors.quantity)}
               placeholder="0"
+              className={inputCls(errors.quantity)}
             />
-          </Field>
+            <FieldError msg={errors.quantity} />
+          </div>
 
-          <Field label="Precio" required error={errors.price}>
+          {/* Precio */}
+          <div>
+            <Label required>
+              <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Precio
+            </Label>
             <input
               type="number"
               name="price"
@@ -115,23 +155,39 @@ export default function InventoryEditor({ initialData, onSave }: Props) {
               onChange={handleChange}
               min={0}
               step="0.01"
-              className={inputCls(errors.price)}
               placeholder="0.00"
+              className={inputCls(errors.price)}
             />
-          </Field>
+            <FieldError msg={errors.price} />
+          </div>
 
-          <Field label="Código de Barras" required error={errors.barcode}>
+          {/* Código de barras */}
+          <div>
+            <Label required>
+              <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+              </svg>
+              Código de barras
+            </Label>
             <input
               type="text"
               name="barcode"
               value={item.barcode}
               onChange={handleChange}
-              className={inputCls(errors.barcode) + ' font-mono'}
               placeholder="Ej: 7501234567890"
+              className={`${inputCls(errors.barcode)} font-mono`}
             />
-          </Field>
+            <FieldError msg={errors.barcode} />
+          </div>
 
-          <Field label="Fecha de Ingreso" required error={errors.arrivalDate}>
+          {/* Fecha de ingreso */}
+          <div>
+            <Label required>
+              <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Fecha de ingreso
+            </Label>
             <input
               type="date"
               name="arrivalDate"
@@ -139,36 +195,51 @@ export default function InventoryEditor({ initialData, onSave }: Props) {
               onChange={handleChange}
               className={inputCls(errors.arrivalDate)}
             />
-          </Field>
+            <FieldError msg={errors.arrivalDate} />
+          </div>
         </div>
 
+        {/* Descripción */}
         <div className="mt-3">
-          <Field label="Descripción" error={errors.description}>
-            <textarea
-              name="description"
-              value={item.description}
-              onChange={handleChange}
-              rows={2}
-              className={inputCls(errors.description) + ' resize-none'}
-              placeholder="Estado del empaque, detalles adicionales..."
-            />
-          </Field>
+          <Label>
+            <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h12M4 18h8" />
+            </svg>
+            Descripción
+            <span className="ml-1 text-xs text-slate-400 font-normal">(opcional)</span>
+          </Label>
+          <textarea
+            name="description"
+            value={item.description}
+            onChange={handleChange}
+            rows={2}
+            placeholder="Estado del empaque, detalles adicionales..."
+            className={`${inputCls(errors.description)} resize-none`}
+          />
         </div>
       </div>
 
-      {/* PRODUCTO */}
+      {/* ── Sección 2: Producto asociado ── */}
       <div>
-        <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-200">
-          <h3 className="text-sm font-semibold text-slate-700">Producto Asociado</h3>
-          <div className="flex gap-1">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10" />
+            </svg>
+          </div>
+          <h3 className="text-sm font-semibold text-slate-700">Producto asociado</h3>
+          <div className="flex-1 h-px bg-slate-100 mx-1" />
+          {/* Toggle select/new */}
+          <div className="flex rounded-lg border border-slate-200 overflow-hidden p-0.5 bg-slate-50">
             {(['select', 'new'] as const).map(m => (
               <button
                 key={m}
+                type="button"
                 onClick={() => setProductMode(m)}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition ${
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
                   productMode === m
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200'
+                    : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
                 {m === 'select' ? 'Existente' : 'Nuevo'}
@@ -178,81 +249,99 @@ export default function InventoryEditor({ initialData, onSave }: Props) {
         </div>
 
         {productMode === 'select' ? (
-          <Field label="Seleccionar Producto" required error={errors.productId}>
+          <div>
+            <Label required>Seleccionar producto</Label>
             <select
               value={item.product.id}
               onChange={handleSelectProduct}
-              className={inputCls(errors.productId)}
+              className={`${inputCls(errors.productId)} pr-9 bg-[url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2020%2020'%20fill%3D'%236b7280'%3E%3Cpath%20fill-rule%3D'evenodd'%20d%3D'M5.23%207.21a.75.75%200%20011.06.02L10%2011.168l3.71-3.938a.75.75%200%20111.08%201.04l-4.25%204.5a.75.75%200%2001-1.08%200l-4.25-4.5a.75.75%200%2001.02-1.06z'%20clip-rule%3D'evenodd'%2F%3E%3C%2Fsvg%3E")] bg-no-repeat bg-[right_0.75rem_center] bg-[length:1.25rem] appearance-none`}
             >
               <option value={0}>— Selecciona un producto —</option>
               {product.map(p => (
                 <option key={p.id} value={p.id}>
-                  {p.name} · {p.brand} · {p.model}
+                  {p.name} · {p.brand} {p.model ? `· ${p.model}` : ''}
                 </option>
               ))}
             </select>
-          </Field>
+            <FieldError msg={errors.productId} />
+          </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
-              <Field label="Nombre" required error={errors.description}>
-                <input
-                  type="text"
-                  name="name"
-                  value={item.product.name}
-                  onChange={handleProductField}
-                  className={inputCls(errors.description)}
-                  placeholder="Nombre del producto"
-                />
-              </Field>
+              <Label required>Nombre</Label>
+              <input
+                type="text"
+                name="name"
+                value={item.product.name}
+                onChange={handleProductField}
+                placeholder="Nombre del producto"
+                className={inputCls(errors.description)}
+                autoFocus={productMode === 'new'}
+              />
+              <FieldError msg={errors.description} />
             </div>
-            <Field label="Marca">
+            <div>
+              <Label>Marca</Label>
               <input
                 type="text"
                 name="brand"
                 value={item.product.brand}
                 onChange={handleProductField}
+                placeholder="Ej: ASUS"
                 className={inputCls()}
-                placeholder="Marca"
               />
-            </Field>
-            <Field label="Modelo">
+            </div>
+            <div>
+              <Label>Modelo</Label>
               <input
                 type="text"
                 name="model"
                 value={item.product.model}
                 onChange={handleProductField}
+                placeholder="Ej: TUF F15"
                 className={inputCls()}
-                placeholder="Modelo"
               />
-            </Field>
+            </div>
           </div>
         )}
       </div>
 
-      {/* ACCIONES */}
-      <button
-        onClick={handleSave}
-        disabled={loading}
-        className="w-full flex items-center justify-center gap-2 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition"
-      >
-        {loading ? (
-          <>
-            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-            Guardando...
-          </>
-        ) : (
-          <>
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            Guardar Registro
-          </>
+      {/* Footer actions */}
+      <div className="flex gap-3 pt-3 border-t border-slate-100">
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={loading}
+            className="flex-1 px-4 py-2.5 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition disabled:opacity-50"
+          >
+            Cancelar
+          </button>
         )}
-      </button>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={loading}
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 rounded-xl transition shadow-sm shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? (
+            <>
+              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              Guardando...
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Guardar registro
+            </>
+          )}
+        </button>
+      </div>
     </div>
   );
 }

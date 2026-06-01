@@ -7,15 +7,35 @@
   --foreground: #171717;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   color: var(--foreground);
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+@keyframes modal-backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes modal-panel-in {
+  from { opacity: 0; transform: scale(0.96) translateY(-10px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+
+.modal-backdrop-enter {
+  animation: modal-backdrop-in 0.18s ease-out forwards;
+}
+
+.modal-panel-enter {
+  animation: modal-panel-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.panel-enter {
+  animation: slide-down 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
