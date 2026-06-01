@@ -1,4 +1,4 @@
-﻿# Sistema de Inventario — TuZonaPCGamer
+﻿# Sistema de Inventario — Sistema_Inventario
 
 Plataforma web para la gestión integral de inventario, productos y movimientos de stock. Arquitectura cliente-servidor desacoplada: API REST en Java y frontend reactivo en Next.js.
 
