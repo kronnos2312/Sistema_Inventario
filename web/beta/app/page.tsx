@@ -1,53 +1,47 @@
-'use client'; // Este archivo usa useState, debe ser client
+'use client';
 
-import { useEffect,useState } from 'react';
-import ProductsPage from "./components/product/ProductsPage";
-import InventoryPage from "./components/inventory/InventoryPage";
-import Layout from "./components/base/Layout";
-import Wellcome from "./components/base/Wellcome";
+import { useEffect, useState } from 'react';
+import ProductsPage from './components/product/ProductsPage';
+import InventoryPage from './components/inventory/InventoryPage';
+import SalesPage from './components/sales/SalesPage';
+import Layout from './components/base/Layout';
+import Wellcome from './components/base/Wellcome';
 
+type Tab = 'bienvenida' | 'productos' | 'inventarios' | 'ventas';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<'bienvenida' | 'productos' | 'inventarios'>('bienvenida');
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'bienvenida':
-        return <Wellcome />;
-      case 'productos':
-        return <ProductsPage />;
-      case 'inventarios':
-        return <InventoryPage />;
-      default:
-        return null;
-    }
-  };
-
-
+  const [activeTab, setActiveTab] = useState<Tab>('bienvenida');
 
   useEffect(() => {
     document.title = getTitle(activeTab);
   }, [activeTab]);
 
-  const getTitle = (tab: string) => {
-    const appTitle = process.env.NEXT_PUBLIC_SITE_TITLE || 'Sistema';
-    let tabTitle = '';
-
-    switch (tab) {
-      case 'bienvenida':
-        tabTitle = 'Bienvenido';
-        break;
-      case 'productos':
-        tabTitle = 'Productos';
-        break;
-      case 'inventarios':
-        tabTitle = 'Inventarios';
-        break;
-    }
-
-    return `${tabTitle} | ${appTitle}`;
+  const getTitle = (tab: Tab) => {
+    const app = process.env.NEXT_PUBLIC_SITE_TITLE || 'Sistema';
+    const labels: Record<Tab, string> = {
+      bienvenida: 'Bienvenido',
+      productos: 'Productos',
+      inventarios: 'Inventario',
+      ventas: 'Ventas',
+    };
+    return `${labels[tab]} | ${app}`;
   };
-  
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'bienvenida':
+        return <Wellcome onNavigate={setActiveTab} />;
+      case 'productos':
+        return <ProductsPage />;
+      case 'inventarios':
+        return <InventoryPage />;
+      case 'ventas':
+        return <SalesPage />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <Layout activeTab={activeTab} onTabChange={setActiveTab}>
       {renderContent()}
