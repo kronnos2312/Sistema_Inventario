@@ -25,8 +25,10 @@ export default function SalesPage() {
 
   const inStock = inventory.filter(i => !i.outDate);
   const retired = inventory.filter(i => !!i.outDate);
-  const stockVal = inStock.reduce((s, i) => s + Number(i.price) * Math.max(Number(i.quantity) || 1, 1), 0);
-  const retVal = retired.reduce((s, i) => s + Number(i.price) * Math.max(Number(i.quantity) || 1, 1), 0);
+  const stockVal = inStock
+    .filter(i => Number(i.quantity) > 0)
+    .reduce((s, i) => s + Number(i.price) * Number(i.quantity), 0);
+  const retVal = retired.reduce((s, i) => s + Number(i.price) * Number(i.quantity), 0);
 
   const filtered = retired.filter(i =>
     `${i.barcode} ${i.product.name} ${i.product.brand} ${i.product.model} ${i.description}`

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { ReactNode, useState } from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
 import Modal from '../base/context/Modal';
 import InventoryEditor from '../inventory/editor/Inventory';
 import ProductEditor from '../product/editor/Product';
@@ -8,6 +8,8 @@ import ManualInventory from '../sales/ManualInventory';
 import { Product } from '@/app/model/Product';
 import { InventoryItem } from '@/app/model/InventoryItem';
 import { WInventory } from '@/app/model/WithdrawInventory';
+import { useInventoryStore } from '@/app/store/useInventoryStore';
+import { userProductStore } from '@/app/store/userProductStore';
 
 type Tab = 'bienvenida' | 'productos' | 'inventarios' | 'ventas';
 type EditorType = 'product' | 'inventory' | 'withdrawal' | null;
@@ -38,6 +40,22 @@ type QuickAction = {
 export default function Welcome({ onNavigate }: Props) {
   const [open, setOpen] = useState(false);
   const [editor, setEditor] = useState<EditorType>(null);
+
+  const { inventory, fetchInventory } = useInventoryStore();
+  const { product, fetchProduct } = userProductStore();
+
+  useEffect(() => {
+    fetchInventory();
+    fetchProduct();
+  }, [fetchInventory, fetchProduct]);
+
+  const inStockItems  = inventory.filter(i => !i.outDate);
+  const retiredItems  = inventory.filter(i => !!i.outDate);
+  const stockValue    = inStockItems
+    .filter(i => Number(i.quantity) > 0)
+    .reduce((s, i) => s + Number(i.price) * Number(i.quantity), 0);
+
+  const fmtCurrency = (v: number) => `$${v.toLocaleString('es-CO')}`;
 
   const closeModal = () => { setOpen(false); setEditor(null); };
 
@@ -149,6 +167,72 @@ export default function Welcome({ onNavigate }: Props) {
         </h1>
         <p className="text-indigo-600 font-semibold text-base">{appClient}</p>
         <p className="text-slate-400 text-sm mt-1">Gestiona tu inventario de forma eficiente</p>
+      </div>
+
+      {/* STATS DASHBOARD */}
+      <div className="w-full max-w-xl grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+        {([
+          {
+            label: 'Productos',
+            value: product.length,
+            color: 'text-indigo-600',
+            bg: 'bg-indigo-50',
+            border: 'border-indigo-100',
+            icon: (
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10" />
+              </svg>
+            ),
+          },
+          {
+            label: 'En Stock',
+            value: inStockItems.length,
+            color: 'text-emerald-600',
+            bg: 'bg-emerald-50',
+            border: 'border-emerald-100',
+            icon: (
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M5 13l4 4L19 7" />
+              </svg>
+            ),
+          },
+          {
+            label: 'Retirados',
+            value: retiredItems.length,
+            color: 'text-amber-600',
+            bg: 'bg-amber-50',
+            border: 'border-amber-100',
+            icon: (
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M17 16l4-4m0 0l-4-4m4 4H7" />
+              </svg>
+            ),
+          },
+          {
+            label: 'Valor en Stock',
+            value: fmtCurrency(stockValue),
+            color: 'text-blue-600',
+            bg: 'bg-blue-50',
+            border: 'border-blue-100',
+            icon: (
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            ),
+          },
+        ] as { label: string; value: string | number; color: string; bg: string; border: string; icon: ReactNode }[]).map(
+          ({ label, value, color, bg, border, icon }) => (
+            <div key={label} className={`${bg} border ${border} rounded-xl p-4 flex flex-col items-center gap-1`}>
+              <span className={`${color} mb-0.5`}>{icon}</span>
+              <p className={`text-lg font-bold ${color} leading-tight`}>{value}</p>
+              <p className="text-xs text-slate-500 font-medium">{label}</p>
+            </div>
+          )
+        )}
       </div>
 
       {/* ACCIONES RÁPIDAS */}
