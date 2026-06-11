@@ -4,10 +4,11 @@ import { useEffect, useState } from 'react';
 import ProductsPage from './components/product/ProductsPage';
 import InventoryPage from './components/inventory/InventoryPage';
 import SalesPage from './components/sales/SalesPage';
+import ConfigPage from './components/config/ConfigPage';
 import Layout from './components/base/Layout';
 import Wellcome from './components/base/Wellcome';
 
-type Tab = 'bienvenida' | 'productos' | 'inventarios' | 'ventas';
+type Tab = 'bienvenida' | 'productos' | 'inventarios' | 'ventas' | 'configuracion';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>('bienvenida');
@@ -23,6 +24,7 @@ export default function Home() {
       productos: 'Productos',
       inventarios: 'Inventario',
       ventas: 'Ventas',
+      configuracion: 'Configuración',
     };
     return `${labels[tab]} | ${app}`;
   };
@@ -37,6 +39,8 @@ export default function Home() {
         return <InventoryPage />;
       case 'ventas':
         return <SalesPage />;
+      case 'configuracion':
+        return <ConfigPage />;
       default:
         return null;
     }
