@@ -16,6 +16,7 @@ Plataforma web para la gestión integral de inventario, productos y movimientos 
 - [Despliegue local — Frontend](#despliegue-local--frontend)
 - [Variables de entorno](#variables-de-entorno)
 - [Despliegue con Docker](#despliegue-con-docker)
+- [Archivo .env](#variables-de-entorno)
 - [Referencia de la API](#referencia-de-la-api)
 - [Estructura del proyecto](#estructura-del-proyecto)
 - [Solución de problemas](#solución-de-problemas)
@@ -250,7 +251,26 @@ yarn start
 
 ## Variables de entorno
 
-### Backend — `application.properties`
+### Docker — archivo `.env` (raíz del proyecto)
+
+Al usar Docker Compose todas las variables se centralizan en el archivo `.env` de la raíz. Copia `.env.example` como punto de partida.
+
+| Variable | Descripción | Valor por defecto |
+|---|---|---|
+| `DB_NAME` | Nombre de la base de datos PostgreSQL | `mydatabase` |
+| `DB_USER` | Usuario de PostgreSQL | `myuser` |
+| `DB_PASSWORD` | Contraseña del usuario | `mypassword` |
+| `DB_SCHEMA` | Schema donde se crean las tablas | `sysinventarios` |
+| `DDL_AUTO` | Estrategia DDL de Hibernate | `update` |
+| `NEXT_PUBLIC_API_BASE_URL` | URL del backend accesible desde el navegador | `http://localhost:8080` |
+| `NEXT_PUBLIC_SITE_TITLE` | Título de la aplicación | `TuZonaPCGamer` |
+| `NEXT_PUBLIC_SITE_CLIENT` | Nombre del cliente en la pantalla de inicio | `TuZona PC Gamer` |
+| `NEXT_PUBLIC_LOGO` | Ruta pública del logotipo | `/img/Testing_LOGO.png` |
+| `FRONTEND_PORT` | Puerto del host para el frontend | `3000` |
+| `BACKEND_PORT` | Puerto del host para el backend | `8080` |
+| `DB_HOST_PORT` | Puerto del host para PostgreSQL | `5432` |
+
+### Backend — `application.properties` (desarrollo local sin Docker)
 
 | Propiedad | Descripción | Valor por defecto |
 |---|---|---|
@@ -269,7 +289,7 @@ export SPRING_DATASOURCE_USERNAME=myuser
 export SPRING_DATASOURCE_PASSWORD=mypassword
 ```
 
-### Frontend — `.env.local`
+### Frontend — `.env.local` (desarrollo local sin Docker)
 
 Todas las variables deben comenzar con `NEXT_PUBLIC_` para ser accesibles desde el navegador.
 
@@ -284,158 +304,133 @@ Todas las variables deben comenzar con `NEXT_PUBLIC_` para ser accesibles desde 
 
 ## Despliegue con Docker
 
-El `docker-compose.yml` en la raíz del proyecto levanta el backend y el frontend en contenedores. La base de datos puede correr en el host o como un servicio adicional.
+El proyecto incluye un `Dockerfile` multi-stage en la raíz que compila el backend (Spring Boot) y el frontend (Next.js) en una **sola imagen**. Docker Compose orquesta esa imagen junto con PostgreSQL.
 
-### Opción A — Base de datos en el host (recomendada para desarrollo)
+### Arquitectura del contenedor
 
-Esta es la configuración incluida en el `docker-compose.yml` del repositorio. El backend accede a PostgreSQL del host a través de `host.docker.internal`.
-
-```yaml
-# docker-compose.yml (configuración actual)
-services:
-  backend:
-    build:
-      context: ./server/beta
-    ports:
-      - "8080:8080"
-    container_name: tuzonapcgamer-backend
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/mydatabase
-      SPRING_DATASOURCE_USERNAME: myuser
-      SPRING_DATASOURCE_PASSWORD: mypassword
-
-  frontend:
-    build:
-      context: ./web/beta
-    ports:
-      - "3000:3000"
-    container_name: tuzonapcgamer-frontend
-    environment:
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+```
+┌─────────────────── tuzonapcgamer-db ───────────────────┐
+│  PostgreSQL 14                                          │
+│  Schema creado por init-db.sh (parametrizable con env) │
+└───────────────────────────┬─────────────────────────────┘
+                            │ JDBC (red interna app-net)
+┌───────────────────────────▼─────────────────────────────┐
+│              tuzonapcgamer-app                          │
+│                                                         │
+│  supervisord                                            │
+│  ├── java -jar backend.jar   → :8080 (API REST)         │
+│  └── npm start               → :3000 (Next.js)          │
+└─────────────────────────────────────────────────────────┘
 ```
 
-Levanta el stack:
+### Paso 1 — Requisitos
+
+- Docker Engine 24+
+- Docker Compose v2 (incluido en Docker Desktop)
+
+Verifica:
 
 ```bash
-docker-compose up --build
+docker --version
+docker compose version
 ```
 
-### Opción B — Stack completo con base de datos en contenedor
-
-Para un entorno completamente aislado, añade un servicio de PostgreSQL al `docker-compose.yml`:
-
-```yaml
-services:
-  db:
-    image: postgres:14
-    container_name: tuzonapcgamer-db
-    environment:
-      POSTGRES_DB: mydatabase
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-
-  backend:
-    build:
-      context: ./server/beta
-    ports:
-      - "8080:8080"
-    container_name: tuzonapcgamer-backend
-    depends_on:
-      - db
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/mydatabase
-      SPRING_DATASOURCE_USERNAME: myuser
-      SPRING_DATASOURCE_PASSWORD: mypassword
-
-  frontend:
-    build:
-      context: ./web/beta
-    ports:
-      - "3000:3000"
-    container_name: tuzonapcgamer-frontend
-
-volumes:
-  pgdata:
-```
-
-### Comandos Docker
+### Paso 2 — Crear el archivo de variables de entorno
 
 ```bash
-# Construir imágenes y levantar contenedores
-docker-compose up --build
-
-# Ejecutar en segundo plano
-docker-compose up -d --build
-
-# Ver logs
-docker-compose logs -f
-
-# Detener y eliminar contenedores
-docker-compose down
-
-# Eliminar también los volúmenes de datos
-docker-compose down -v
-
-# Reconstruir sin caché
-docker-compose build --no-cache
-docker-compose up
+cp .env.example .env
 ```
 
-### Puertos expuestos
+Edita `.env` con los valores de tu entorno. Las variables disponibles son:
 
-| Servicio | Puerto del host | Descripción |
+| Variable | Descripción | Valor por defecto |
 |---|---|---|
-| Backend (Spring Boot) | `8080` | API REST |
-| Frontend (Next.js) | `3000` | Interfaz web |
-| PostgreSQL *(si en contenedor)* | `5432` | Base de datos |
+| `DB_NAME` | Nombre de la base de datos | `mydatabase` |
+| `DB_USER` | Usuario de PostgreSQL | `myuser` |
+| `DB_PASSWORD` | Contraseña del usuario | `mypassword` |
+| `DB_SCHEMA` | Schema donde Hibernate crea las tablas | `sysinventarios` |
+| `DDL_AUTO` | Estrategia DDL de Hibernate | `update` |
+| `NEXT_PUBLIC_API_BASE_URL` | URL del backend accesible desde el navegador | `http://localhost:8080` |
+| `NEXT_PUBLIC_SITE_TITLE` | Título de la aplicación | `TuZonaPCGamer` |
+| `NEXT_PUBLIC_SITE_CLIENT` | Nombre del cliente en la pantalla de inicio | `TuZona PC Gamer` |
+| `NEXT_PUBLIC_LOGO` | Ruta pública del logotipo | `/img/Testing_LOGO.png` |
+| `FRONTEND_PORT` | Puerto del host para Next.js | `3000` |
+| `BACKEND_PORT` | Puerto del host para Spring Boot | `8080` |
+| `DB_HOST_PORT` | Puerto del host para PostgreSQL | `5432` |
 
-### Dockerfiles de referencia
+> **Nota sobre `NEXT_PUBLIC_API_BASE_URL`:** Next.js incrusta esta URL en el bundle en tiempo de compilación. Si despliegas en un servidor remoto, cambia el valor al dominio o IP pública del servidor antes de construir la imagen (p. ej. `http://mi-servidor.com:8080`).
 
-Si los Dockerfiles no existen aún, estos son los recomendados para cada servicio:
+### Paso 3 — Construir y levantar el stack
 
-**`server/beta/Dockerfile`**
+```bash
+# Construye la imagen y levanta los contenedores
+docker compose up --build
 
-```dockerfile
-FROM eclipse-temurin:17-jdk-alpine AS build
-WORKDIR /app
-COPY . .
-RUN ./mvnw clean package -DskipTests
-
-FROM eclipse-temurin:17-jre-alpine
-WORKDIR /app
-COPY --from=build /app/target/inventory-0.0.1-SNAPSHOT.jar app.jar
-EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# O en segundo plano
+docker compose up -d --build
 ```
 
-**`web/beta/Dockerfile`**
+La primera vez tarda varios minutos (Maven descarga dependencias y Next.js compila los assets). Las siguientes ejecuciones usan la caché de Docker.
 
-```dockerfile
-FROM node:18-alpine AS build
-WORKDIR /app
-COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile
-COPY . .
-ARG NEXT_PUBLIC_API_BASE_URL
-ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
-RUN yarn build
+### Paso 4 — Verificar que todo está corriendo
 
-FROM node:18-alpine
-WORKDIR /app
-COPY --from=build /app/.next/standalone ./
-COPY --from=build /app/public ./public
-COPY --from=build /app/.next/static ./.next/static
-EXPOSE 3000
-CMD ["node", "server.js"]
+```bash
+docker compose ps
 ```
 
-> **Nota:** Para el Dockerfile del frontend, añade `output: 'standalone'` en `next.config.ts` para habilitar el modo standalone de Next.js.
+Deberías ver dos contenedores en estado `running`:
+
+```
+NAME                    STATUS
+tuzonapcgamer-db        running (healthy)
+tuzonapcgamer-app       running
+```
+
+Accede a:
+- **Frontend:** http://localhost:3000
+- **API REST:** http://localhost:8080/product
+
+### Paso 5 — Ver logs
+
+```bash
+# Todos los servicios
+docker compose logs -f
+
+# Solo la aplicación
+docker compose logs -f app
+
+# Solo la base de datos
+docker compose logs -f db
+```
+
+### Paso 6 — Detener el stack
+
+```bash
+# Detiene y elimina los contenedores (los datos persisten en el volumen pgdata)
+docker compose down
+
+# Detiene y elimina también los volúmenes (borra todos los datos)
+docker compose down -v
+```
+
+### Reconstruir sin caché
+
+Necesario cuando cambias variables `NEXT_PUBLIC_*` o el código fuente:
+
+```bash
+docker compose build --no-cache
+docker compose up
+```
+
+### Puertos expuestos por defecto
+
+| Contenedor | Puerto host | Puerto interno | Descripción |
+|---|---|---|---|
+| `tuzonapcgamer-app` | `3000` | `3000` | Next.js (frontend) |
+| `tuzonapcgamer-app` | `8080` | `8080` | Spring Boot (API REST) |
+| `tuzonapcgamer-db` | `5432` | `5432` | PostgreSQL |
+
+Todos los puertos del host son configurables en `.env` (`FRONTEND_PORT`, `BACKEND_PORT`, `DB_HOST_PORT`).
 
 ---
 
@@ -535,9 +530,13 @@ CORS habilitado para: `http://localhost:3000`
 ```
 Sistema_Inventario/
 │
-├── docker-compose.yml              # Orquestación de servicios
-├── run-compose.bat                 # Script de arranque (Windows)
-├── run-compose.sh                  # Script de arranque (Linux/Mac)
+├── Dockerfile                      # Multi-stage: compila backend + frontend en una imagen
+├── supervisord.conf                # Gestiona ambos procesos dentro del contenedor
+├── docker-compose.yml              # Orquestación: servicio db + servicio app (único)
+├── init-db.sh                      # Crea el schema PostgreSQL al iniciar (usa $DB_SCHEMA)
+├── .env.example                    # Plantilla de variables de entorno
+├── run-compose.bat                 # Atajo de arranque (Windows)
+├── run-compose.sh                  # Atajo de arranque (Linux/Mac)
 │
 ├── server/beta/                    # ── BACKEND (Spring Boot) ──────────────
 │   ├── pom.xml                     # Dependencias Maven
