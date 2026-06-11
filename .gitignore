@@ -2,3 +2,7 @@
 /templates
 /web/dashboard
 /.claude
+
+# Variables de entorno con credenciales reales — nunca commitear
+.env
+envs/.env.prod

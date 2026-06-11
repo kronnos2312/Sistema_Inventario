@@ -1,6 +1,6 @@
-# Tu zona PC Gamer (web)
+# Sistema de Inventarios (web)
 
-`tuzonapcgamerweb` es una plataforma web desarrollada con **Next.js** orientada a arquitectura cliente-servidor, integrada con un backend en **Spring Boot**. 
+`sistemainventariosweb` es una plataforma web desarrollada con **Next.js** orientada a arquitectura cliente-servidor, integrada con un backend en **Spring Boot**. 
 
 Esta aplicación está diseñada para gestionar el inventario de la empresa, incluyendo funcionalidades para la entrada y salida de productos, facilitando un control eficiente y actualizado del stock.
 
@@ -23,8 +23,8 @@ Esta aplicación está diseñada para gestionar el inventario de la empresa, inc
 
 1. Clona este repositorio:
    ```bash
-   git clone https://github.com/kronnos2312/TuZonaPCGamer.git
-   cd tuzonapcgamerweb
+   git clone https://github.com/kronnos2312/sistemainventarios.git
+   cd sistemainventariosweb
 
 #
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).

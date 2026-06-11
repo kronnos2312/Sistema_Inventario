@@ -1,0 +1,31 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# OVERRIDES — Ambiente de producción (prod)
+# Uso: docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+#              --env-file envs/.env.prod up --build -d
+#
+# Diferencias clave vs base:
+#   - BD NO expuesta al host (solo red interna)
+#   - restart: always
+#   - Logs SQL silenciados
+#   - Límites de recursos definidos
+# ─────────────────────────────────────────────────────────────────────────────
+services:
+
+  db:
+    restart: always
+    # Sin ports → la BD solo es accesible desde la red interna app-net
+
+  app:
+    restart: always
+    environment:
+      SPRING_JPA_SHOW_SQL: "false"
+      LOGGING_LEVEL_ORG_HIBERNATE_SQL: WARN
+      LOGGING_LEVEL_ORG_HIBERNATE_TYPE_DESCRIPTOR_SQL_BASICBINDER: WARN
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1536M
+        reservations:
+          cpus: "0.5"
+          memory: 512M

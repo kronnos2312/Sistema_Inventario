@@ -15,8 +15,11 @@ Plataforma web para la gestión integral de inventario, productos y movimientos 
 - [Despliegue local — Backend](#despliegue-local--backend)
 - [Despliegue local — Frontend](#despliegue-local--frontend)
 - [Variables de entorno](#variables-de-entorno)
+- [Ambientes (dev / test / prod)](#ambientes-dev--test--prod)
+  - [Paso a paso — Desarrollo](#configuración-paso-a-paso--desarrollo-dev)
+  - [Paso a paso — Pruebas](#configuración-paso-a-paso--pruebas-test)
+  - [Paso a paso — Producción](#configuración-paso-a-paso--producción-prod)
 - [Despliegue con Docker](#despliegue-con-docker)
-- [Archivo .env](#variables-de-entorno)
 - [Referencia de la API](#referencia-de-la-api)
 - [Estructura del proyecto](#estructura-del-proyecto)
 - [Solución de problemas](#solución-de-problemas)
@@ -299,6 +302,324 @@ Todas las variables deben comenzar con `NEXT_PUBLIC_` para ser accesibles desde 
 | `NEXT_PUBLIC_SITE_TITLE` | Título de la aplicación (header y pestaña del navegador) | No |
 | `NEXT_PUBLIC_SITE_CLIENT` | Nombre del cliente mostrado en la pantalla de inicio | No |
 | `NEXT_PUBLIC_LOGO` | Ruta pública del logotipo, relativa a `/public` | No |
+
+---
+
+## Ambientes (dev / test / prod)
+
+El proyecto usa un `docker-compose.yml` base más un archivo de override por ambiente. Cada ambiente tiene su propio namespace de volúmenes (vía `COMPOSE_PROJECT_NAME`), por lo que pueden coexistir en el mismo host.
+
+```
+docker-compose.yml            ← base común (no usar solo)
+docker-compose.dev.yml        ← overrides de desarrollo
+docker-compose.test.yml       ← overrides de pruebas
+docker-compose.prod.yml       ← overrides de producción
+
+envs/
+  .env.dev                    ← variables de dev (commiteado)
+  .env.test                   ← variables de test (commiteado)
+  .env.prod.example           ← plantilla de prod (commiteado)
+  .env.prod                   ← credenciales reales de prod (gitignored)
+```
+
+### Diferencias por ambiente
+
+| Característica | dev | test | prod |
+|---|---|---|---|
+| `ddl-auto` | `update` | `create-drop` | `update` |
+| Schema BD | `sysinventarios` | `sysinventarios_test` | `sysinventarios` |
+| BD expuesta al host | Sí (`:5433`) | Sí (`:5434`) | No |
+| SQL en consola | Sí (DEBUG) | Sí (DEBUG) | No (WARN) |
+| Restart policy | `no` | `no` | `always` |
+| Límites de recursos | No | No | CPU 2 / RAM 1.5 GB |
+| Modo foreground | Sí | Sí | No (`-d`) |
+
+---
+
+### Configuración paso a paso — Desarrollo (dev)
+
+El ambiente de desarrollo expone todos los puertos, activa el log SQL completo y no reinicia los contenedores automáticamente para facilitar el ciclo editar → probar → detener.
+
+**Requisitos:** Docker Desktop o Docker Engine + Docker Compose v2.
+
+#### 1. Clonar el repositorio
+
+```bash
+git clone <url-del-repositorio>
+cd Sistema_Inventario
+```
+
+#### 2. Revisar las variables de dev
+
+Abre `envs/.env.dev` y confirma los valores. Para un entorno local estándar no hace falta cambiar nada:
+
+```env
+DB_NAME=inventory_dev       # BD separada de prod
+DB_USER=myuser
+DB_PASSWORD=mypassword
+DB_SCHEMA=sysinventarios
+DB_HOST_PORT=5433           # ← puerto 5433 para no chocar con PostgreSQL local
+DDL_AUTO=update
+
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+FRONTEND_PORT=3000
+BACKEND_PORT=8080
+```
+
+> Si ya tienes PostgreSQL corriendo en el host en el puerto 5432, el puerto `5433` evita el conflicto. Si el 5433 también está ocupado, cambia `DB_HOST_PORT` a cualquier puerto libre.
+
+#### 3. Levantar el stack
+
+Linux / Mac / WSL:
+```bash
+make dev
+```
+
+Windows CMD:
+```bat
+run-compose.bat dev
+```
+
+Docker Compose directo:
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml \
+  --env-file envs/.env.dev up --build
+```
+
+La primera vez Maven descarga dependencias y npm compila los assets — puede tardar 3-5 minutos. Las siguientes ejecuciones usan la caché de Docker y son mucho más rápidas.
+
+#### 4. Verificar que levantó correctamente
+
+Cuando veas en los logs la línea:
+
+```
+backend  | Started InventoryApplication in X.XXX seconds
+frontend | ✓ Ready in XXXms
+```
+
+Ambos procesos están listos. Comprueba:
+
+```bash
+# BD accesible desde el host
+psql -U myuser -d inventory_dev -h localhost -p 5433
+
+# API REST
+curl http://localhost:8080/product
+
+# Frontend
+# Abre en el navegador: http://localhost:3000
+```
+
+#### 5. Ver logs mientras desarrollas
+
+```bash
+# En otra terminal
+docker compose -f docker-compose.yml -f docker-compose.dev.yml \
+  --env-file envs/.env.dev logs -f app
+```
+
+#### 6. Detener
+
+```bash
+make down-dev
+# o
+docker compose -f docker-compose.yml -f docker-compose.dev.yml \
+  --env-file envs/.env.dev down
+```
+
+Los datos de la BD persisten en el volumen `inv-dev_pgdata`. Para borrarlos también:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml \
+  --env-file envs/.env.dev down -v
+```
+
+---
+
+### Configuración paso a paso — Pruebas (test)
+
+El ambiente de pruebas usa `ddl-auto=create-drop` (la BD se crea limpia al arrancar y se destruye al bajar) y un schema aislado. Puede correr en paralelo con dev porque usa puertos diferentes para la BD.
+
+#### 1. Revisar las variables de test
+
+Abre `envs/.env.test` y confirma:
+
+```env
+DB_NAME=inventory_test
+DB_USER=testuser
+DB_PASSWORD=testpassword
+DB_SCHEMA=sysinventarios_test   # schema aislado
+DB_HOST_PORT=5434               # puerto distinto al de dev (5433) y al local (5432)
+DDL_AUTO=create-drop            # ← BD limpia en cada arranque
+
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+FRONTEND_PORT=3000
+BACKEND_PORT=8080
+```
+
+#### 2. Levantar el stack de test
+
+```bash
+make test
+# o
+docker compose -f docker-compose.yml -f docker-compose.test.yml \
+  --env-file envs/.env.test up --build
+```
+
+Con `create-drop`, Hibernate crea todas las tablas al iniciar y las elimina al apagar. El volumen de datos queda vacío entre ejecuciones.
+
+#### 3. Verificar el arranque
+
+Espera el mensaje `Started InventoryApplication` en los logs y comprueba:
+
+```bash
+# BD de test accesible
+psql -U testuser -d inventory_test -h localhost -p 5434
+
+# API apuntando al schema correcto
+curl http://localhost:8080/product    # debe devolver []
+```
+
+#### 4. Detener y limpiar (obligatorio)
+
+Siempre baja el ambiente de test eliminando el volumen para garantizar una BD limpia en la próxima ejecución:
+
+```bash
+make down-test
+# equivale a:
+docker compose -f docker-compose.yml -f docker-compose.test.yml \
+  --env-file envs/.env.test down -v
+```
+
+> **Importante:** omitir `-v` deja el volumen con datos de la ejecución anterior. La próxima vez, `create-drop` borrará y recreará las tablas, pero el volumen persistirá hasta que se elimine explícitamente.
+
+---
+
+### Configuración paso a paso — Producción (prod)
+
+El ambiente de producción levanta los contenedores en segundo plano (`-d`), no expone la BD al host, silencia el log SQL y aplica límites de CPU y memoria.
+
+> Estos pasos se ejecutan en el **servidor de producción**, no en la máquina de desarrollo.
+
+#### 1. Clonar el repositorio en el servidor
+
+```bash
+git clone <url-del-repositorio>
+cd Sistema_Inventario
+```
+
+#### 2. Crear el archivo de variables de producción
+
+```bash
+cp envs/.env.prod.example envs/.env.prod
+```
+
+#### 3. Editar `.env.prod` con las credenciales reales
+
+```bash
+nano envs/.env.prod   # o el editor de tu preferencia
+```
+
+Campos obligatorios a cambiar:
+
+| Variable | Qué poner |
+|---|---|
+| `DB_PASSWORD` | Contraseña segura (mín. 16 caracteres, caracteres especiales) |
+| `DB_USER` | Usuario de BD (evitar `myuser` en prod) |
+| `DB_NAME` | Nombre de la BD de producción |
+| `NEXT_PUBLIC_API_BASE_URL` | `http://<IP-o-dominio-del-servidor>:8080` |
+
+Ejemplo de `.env.prod` completo:
+
+```env
+COMPOSE_PROJECT_NAME=inv-prod
+
+DB_NAME=inventory_prod
+DB_USER=inv_prod_user
+DB_PASSWORD=S3cur3P@ssw0rd!2026
+DB_SCHEMA=sysinventarios
+DDL_AUTO=update
+
+NEXT_PUBLIC_API_BASE_URL=http://192.168.1.100:8080
+NEXT_PUBLIC_SITE_TITLE=TuZonaPCGamer
+NEXT_PUBLIC_SITE_CLIENT=TuZona PC Gamer
+NEXT_PUBLIC_LOGO=/img/Testing_LOGO.png
+
+FRONTEND_PORT=3000
+BACKEND_PORT=8080
+```
+
+> `NEXT_PUBLIC_API_BASE_URL` debe ser la URL que el **navegador del usuario** puede alcanzar. Si el servidor tiene dominio, usa `http://tudominio.com:8080`. Si solo tiene IP privada dentro de la red, usa la IP privada.
+
+#### 4. Construir y levantar en segundo plano
+
+```bash
+make prod
+# o
+docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+  --env-file envs/.env.prod up --build -d
+```
+
+El flag `-d` (detach) hace que los contenedores corran en segundo plano y el terminal quede libre.
+
+#### 5. Verificar el estado de los contenedores
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+  --env-file envs/.env.prod ps
+```
+
+Ambos deben mostrar `running (healthy)` para `db` y `running` para `app`.
+
+#### 6. Seguir los logs de arranque
+
+```bash
+make logs-prod
+# o
+docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+  --env-file envs/.env.prod logs -f
+```
+
+Presiona `Ctrl+C` para salir de los logs sin detener los contenedores.
+
+#### 7. Verificar que la aplicación responde
+
+```bash
+# Desde el servidor
+curl http://localhost:8080/product     # API
+curl -I http://localhost:3000          # Frontend (debe devolver HTTP 200)
+
+# Desde un navegador en la red
+# http://<IP-del-servidor>:3000
+```
+
+#### 8. Detener producción
+
+```bash
+make down-prod
+# o
+docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+  --env-file envs/.env.prod down
+```
+
+> **No uses `down -v` en producción** a menos que quieras borrar todos los datos. Los datos persisten en el volumen `inv-prod_pgdata`.
+
+---
+
+### Referencia rápida de comandos
+
+| Acción | Linux/Mac/WSL | Windows |
+|---|---|---|
+| Levantar dev | `make dev` | `run-compose.bat dev` |
+| Levantar test | `make test` | `run-compose.bat test` |
+| Levantar prod | `make prod` | `run-compose.bat prod` |
+| Detener dev | `make down-dev` | `docker compose ... down` |
+| Detener test + limpiar BD | `make down-test` | `docker compose ... down -v` |
+| Detener prod | `make down-prod` | `docker compose ... down` |
+| Logs dev | `make logs-dev` | `docker compose ... logs -f` |
+| Logs prod | `make logs-prod` | `docker compose ... logs -f` |
+| Limpiar dev + test | `make clean` | — |
+| Ver todos los comandos | `make help` | — |
 
 ---
 

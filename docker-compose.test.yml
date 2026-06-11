@@ -1,0 +1,28 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# OVERRIDES — Ambiente de pruebas (test)
+# Uso: docker compose -f docker-compose.yml -f docker-compose.test.yml \
+#              --env-file envs/.env.test up --build
+#
+# Diferencias clave vs dev:
+#   - ddl-auto=create-drop → BD limpia en cada despliegue
+#   - Schema aislado (sysinventarios_test)
+#   - Datos efímeros: ejecutar `down -v` al terminar para limpiar el volumen
+# ─────────────────────────────────────────────────────────────────────────────
+services:
+
+  db:
+    # Puerto expuesto en host diferente al de dev para ejecutar ambos en paralelo
+    ports:
+      - "${DB_HOST_PORT:-5434}:5432"
+    restart: "no"
+    healthcheck:
+      # Healthcheck más agresivo para acelerar el arranque en CI
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  app:
+    restart: "no"
+    environment:
+      SPRING_JPA_SHOW_SQL: "true"
+      LOGGING_LEVEL_ORG_HIBERNATE_SQL: DEBUG
