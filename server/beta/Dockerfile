@@ -1,10 +1,13 @@
-# Usar openjdk 17 base slim
-FROM openjdk:17-jdk-slim
+# ── Build stage ──────────────────────────────────────────────────────────────
+FROM maven:3.9-eclipse-temurin-17-alpine AS builder
+WORKDIR /build
+COPY pom.xml .
+COPY src ./src
+RUN mvn clean package -DskipTests -q
+
+# ── Runtime stage ─────────────────────────────────────────────────────────────
+FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
-
-# Copiar jar construido (suponiendo que ya hiciste mvn package)
-COPY target/*.jar app.jar
-
+COPY --from=builder /build/target/*.jar app.jar
 EXPOSE 8080
-
 ENTRYPOINT ["java", "-jar", "app.jar"]
