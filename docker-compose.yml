@@ -12,7 +12,7 @@ services:
   # ── BASE DE DATOS ────────────────────────────────────────────────────────────
   db:
     image: postgres:14
-    restart: unless-stopped
+    restart: always
     environment:
       POSTGRES_DB:       ${DB_NAME:-inventory}
       POSTGRES_USER:     ${DB_USER:-myuser}
@@ -34,7 +34,7 @@ services:
     build:
       context: ./server/beta
       dockerfile: Dockerfile
-    restart: unless-stopped
+    restart: always
     ports:
       - "${BACKEND_PORT:-8080}:8080"
     depends_on:
@@ -58,14 +58,16 @@ services:
         # /api-proxy es relativo: funciona desde cualquier IP sin rebuild.
         # Next.js lo proxía a INTERNAL_API_URL via la red interna de Docker.
         NEXT_PUBLIC_API_BASE_URL: /api-proxy
-        NEXT_PUBLIC_LOGO:         ${NEXT_PUBLIC_LOGO:-/img/logo.png}
+        NEXT_PUBLIC_LOGO:         ${NEXT_PUBLIC_LOGO:-/logo/logo.png}
         NEXT_PUBLIC_SITE_TITLE:   ${NEXT_PUBLIC_SITE_TITLE:-Sistema Inventario}
         NEXT_PUBLIC_SITE_CLIENT:  ${NEXT_PUBLIC_SITE_CLIENT:-TuZona PC Gamer}
         # Pasado como build arg para que next.config.ts lo lea en el build
         INTERNAL_API_URL:         http://backend:8080
-    restart: unless-stopped
+    restart: always
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
+    volumes:
+      - ./logo:/app/public/logo
     depends_on:
       - backend
     environment:

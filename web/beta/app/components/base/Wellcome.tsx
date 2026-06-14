@@ -2,6 +2,7 @@
 
 import React, { ReactNode, useEffect, useState } from 'react';
 import Modal from '../base/context/Modal';
+import AppLogo from './AppLogo';
 import InventoryEditor from '../inventory/editor/Inventory';
 import ProductEditor from '../product/editor/Product';
 import ManualInventory from '../sales/ManualInventory';
@@ -156,11 +157,8 @@ export default function Welcome({ onNavigate }: Props) {
     <div className="flex flex-col items-center justify-center min-h-[70vh] px-6 py-12 text-center bg-white">
       {/* HERO */}
       <div className="mb-8">
-        <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-md">
-          <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-          </svg>
+        <div className="mx-auto mb-4 flex items-center justify-center">
+          <AppLogo size={80} className="shadow-md" />
         </div>
         <h1 className="text-3xl md:text-4xl font-extrabold text-slate-800 mb-1">
           {appTitle}

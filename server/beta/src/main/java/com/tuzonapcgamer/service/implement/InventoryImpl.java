@@ -104,8 +104,21 @@ public class InventoryImpl implements InventoryService {
 
         return repository.findByBarCode(wInventory.getBarCode())
                 .map(item -> {
-                    item.setOutDate(wInventory.getDateOut());
-                    item.setQuantity(1);
+                    int requested = (wInventory.getWithdrawQuantity() != null && wInventory.getWithdrawQuantity() > 0)
+                            ? wInventory.getWithdrawQuantity()
+                            : item.getQuantity();
+
+                    if (requested >= item.getQuantity()) {
+                        // Retiro total: marcar como retirado
+                        item.setOutDate(wInventory.getDateOut());
+                    } else {
+                        // Retiro parcial: reducir quantity, permanece en stock
+                        item.setQuantity(item.getQuantity() - requested);
+                    }
+
+                    if (wInventory.getDescription() != null && !wInventory.getDescription().isBlank()) {
+                        item.setWithdrawalNote(wInventory.getDescription());
+                    }
                     repository.save(item);
 
                     wInventory.setCodeName("success");

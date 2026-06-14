@@ -9,6 +9,8 @@ interface CartItem {
   productBrand: string;
   productModel: string;
   price: number;
+  availableQty: number;
+  withdrawQty: number;
 }
 
 type Props = {
@@ -24,11 +26,14 @@ export default function MultiWithdrawalPanel({ onClose }: Props) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [barcodeInput, setBarcodeInput] = useState('');
   const [date, setDate] = useState(today);
+  const [description, setDescription] = useState('');
   const [inputError, setInputError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const total = cart.reduce((sum, i) => sum + i.price, 0);
+
+  const total = cart.reduce((sum, i) => sum + i.price * i.withdrawQty, 0);
+  const totalUnits = cart.reduce((sum, i) => sum + i.withdrawQty, 0);
 
   const addItem = () => {
     const code = barcodeInput.trim();
@@ -46,6 +51,7 @@ export default function MultiWithdrawalPanel({ onClose }: Props) {
       return;
     }
 
+    const qty = Number(found.quantity) || 1;
     setCart(prev => [
       ...prev,
       {
@@ -54,6 +60,8 @@ export default function MultiWithdrawalPanel({ onClose }: Props) {
         productBrand: found.product.brand,
         productModel: found.product.model,
         price: Number(found.price),
+        availableQty: qty,
+        withdrawQty: qty,
       },
     ]);
     setBarcodeInput('');
@@ -65,6 +73,14 @@ export default function MultiWithdrawalPanel({ onClose }: Props) {
     setCart(prev => prev.filter(i => i.barcode !== barcode));
   };
 
+  const updateWithdrawQty = (barcode: string, qty: number) => {
+    setCart(prev => prev.map(item =>
+      item.barcode === barcode
+        ? { ...item, withdrawQty: Math.min(Math.max(1, qty || 1), item.availableQty) }
+        : item
+    ));
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') addItem();
   };
@@ -73,9 +89,15 @@ export default function MultiWithdrawalPanel({ onClose }: Props) {
     if (cart.length === 0) return;
     if (!date) { setInputError('Selecciona la fecha de retiro'); return; }
     setLoading(true);
-    await bulkOutInventory(cart.map(i => ({ barCode: i.barcode, dateOut: date })));
+    await bulkOutInventory(cart.map(i => ({
+      barCode: i.barcode,
+      dateOut: date,
+      description: description.trim() || undefined,
+      withdrawQuantity: i.withdrawQty,
+    })));
     setLoading(false);
     setCart([]);
+    setDescription('');
     onClose();
   };
 
@@ -96,7 +118,7 @@ export default function MultiWithdrawalPanel({ onClose }: Props) {
             <p className="text-xs text-white/70 leading-tight">
               {cart.length === 0
                 ? 'Agrega artículos por código de barras'
-                : `${cart.length} artículo${cart.length !== 1 ? 's' : ''} en lista`}
+                : `${cart.length} artículo${cart.length !== 1 ? 's' : ''} · ${totalUnits} unidad${totalUnits !== 1 ? 'es' : ''}`}
             </p>
           </div>
         </div>
@@ -176,6 +198,24 @@ export default function MultiWithdrawalPanel({ onClose }: Props) {
           </div>
         </div>
 
+        {/* ── Descripción del retiro ── */}
+        <div>
+          <label className="flex items-center gap-1 text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" />
+            </svg>
+            Descripción del retiro
+            <span className="ml-auto font-normal normal-case text-slate-400">Opcional</span>
+          </label>
+          <textarea
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            placeholder="Motivo o nota del retiro (venta, traslado, daño, etc.)..."
+            rows={2}
+            className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm bg-white hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 transition resize-none placeholder:text-slate-400"
+          />
+        </div>
+
         {/* ── Lista de artículos ── */}
         <div>
           <div className="flex items-center justify-between mb-2">
@@ -227,9 +267,27 @@ export default function MultiWithdrawalPanel({ onClose }: Props) {
                     <p className="text-xs font-mono text-slate-400 mt-0.5 truncate">{item.barcode}</p>
                   </div>
 
+                  {/* Campo cantidad (solo cuando hay más de 1 unidad) */}
+                  {item.availableQty > 1 && (
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <span className="text-xs text-slate-400 whitespace-nowrap">Cant:</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={item.availableQty}
+                        value={item.withdrawQty}
+                        onChange={e => updateWithdrawQty(item.barcode, Number(e.target.value))}
+                        className="w-14 px-2 py-1 border border-slate-200 rounded-lg text-xs text-center focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 transition"
+                      />
+                      <span className="text-xs text-slate-400">/{item.availableQty}</span>
+                    </div>
+                  )}
+
                   {/* Precio */}
                   <span className="text-sm font-bold text-slate-800 flex-shrink-0">
-                    {fmt(item.price)}
+                    {item.availableQty > 1
+                      ? `${fmt(item.price * item.withdrawQty)}`
+                      : fmt(item.price)}
                   </span>
 
                   {/* Eliminar */}
@@ -256,8 +314,8 @@ export default function MultiWithdrawalPanel({ onClose }: Props) {
               <p className="text-xl font-extrabold text-slate-800">{fmt(total)}</p>
             </div>
             <div className="text-right">
-              <p className="text-xs text-slate-500">Artículos</p>
-              <p className="text-xl font-extrabold text-indigo-600">{cart.length}</p>
+              <p className="text-xs text-slate-500">Unidades</p>
+              <p className="text-xl font-extrabold text-indigo-600">{totalUnits}</p>
             </div>
           </div>
         )}

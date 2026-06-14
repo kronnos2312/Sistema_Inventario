@@ -7,6 +7,8 @@ public class WInventory {
     private String barCode;
     private String codeName;
     private String messageName;
+    private String description;
+    private Integer withdrawQuantity;
 
     public String getMessageName() {
         return messageName;
@@ -38,5 +40,21 @@ public class WInventory {
 
     public void setBarCode(String barCode) {
         this.barCode = barCode;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public Integer getWithdrawQuantity() {
+        return withdrawQuantity;
+    }
+
+    public void setWithdrawQuantity(Integer withdrawQuantity) {
+        this.withdrawQuantity = withdrawQuantity;
     }
 }

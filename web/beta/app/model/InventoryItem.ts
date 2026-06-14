@@ -5,6 +5,7 @@ export type InventoryItem = {
     quantity: number | "";
     price: number | "";
     description: string;
+    withdrawalNote?: string;
     product: Product;
     arrivalDate:string;
     outDate:string | "";

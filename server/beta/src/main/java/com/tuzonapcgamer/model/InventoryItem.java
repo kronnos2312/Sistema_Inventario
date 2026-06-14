@@ -48,8 +48,14 @@ public class InventoryItem extends BaseEntity{
     /**
      * Relacion con la descripcion del producto estado empaque estado del producto caducidad ETC
      */
-    @Column(name = "description", nullable = false, unique = true, columnDefinition = "TEXT")
+    @Column(name = "description", nullable = false, columnDefinition = "TEXT")
     private String description;
+
+    /**
+     * Nota o motivo registrado en el momento del retiro.
+     */
+    @Column(name = "withdrawal_note", columnDefinition = "TEXT")
+    private String withdrawalNote;
 
     public InventoryItem(Date creationAt, Long creatorId, String creatorName, String barcode, int quantity, Date arrivalDate, Product product, BigDecimal price, String description) {
         super(creationAt, creatorId, creatorName);
@@ -128,5 +134,13 @@ public class InventoryItem extends BaseEntity{
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getWithdrawalNote() {
+        return withdrawalNote;
+    }
+
+    public void setWithdrawalNote(String withdrawalNote) {
+        this.withdrawalNote = withdrawalNote;
     }
 }

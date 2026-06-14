@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useInventoryStore } from '@/app/store/useInventoryStore';
 import MultiWithdrawalPanel from './MultiWithdrawalPanel';
+import BarcodeScanner from './BarcodeScanner';
 
 type SortKey = 'barcode' | 'product' | 'brand' | 'price' | 'arrivalDate' | 'outDate';
 type SortDir = 'asc' | 'desc';
@@ -10,6 +11,7 @@ type SortDir = 'asc' | 'desc';
 export default function SalesPage() {
   const { inventory, fetchInventory } = useInventoryStore();
   const [panelOpen, setPanelOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -31,7 +33,7 @@ export default function SalesPage() {
   const retVal = retired.reduce((s, i) => s + Number(i.price) * Number(i.quantity), 0);
 
   const filtered = retired.filter(i =>
-    `${i.barcode} ${i.product.name} ${i.product.brand} ${i.product.model} ${i.description}`
+    `${i.barcode} ${i.product.name} ${i.product.brand} ${i.product.model} ${i.description} ${i.withdrawalNote ?? ''}`
       .toLowerCase().includes(search.toLowerCase())
   );
 
@@ -127,21 +129,43 @@ export default function SalesPage() {
           <h1 className="text-2xl font-semibold text-slate-800">Ventas / Movimientos</h1>
           <p className="text-sm text-slate-500 mt-1">Historial de salidas y retiros de inventario</p>
         </div>
-        <button
-          onClick={() => setPanelOpen(v => !v)}
-          className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition shadow-sm ${
-            panelOpen
-              ? 'bg-indigo-100 text-indigo-700 border border-indigo-200 hover:bg-indigo-200'
-              : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-          }`}
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round"
-              d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-          </svg>
-          {panelOpen ? 'Ocultar panel' : 'Retiro Múltiple'}
-        </button>
+        <div className="flex gap-2">
+          {/* Botón buscar / consultar */}
+          <button
+            onClick={() => { setSearchOpen(v => !v); if (panelOpen) setPanelOpen(false); }}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition shadow-sm ${
+              searchOpen
+                ? 'bg-violet-100 text-violet-700 border border-violet-200 hover:bg-violet-200'
+                : 'bg-violet-600 hover:bg-violet-700 text-white'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round"
+                d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+            </svg>
+            {searchOpen ? 'Cerrar consulta' : 'Consultar'}
+          </button>
+
+          {/* Botón retiro múltiple */}
+          <button
+            onClick={() => { setPanelOpen(v => !v); if (searchOpen) setSearchOpen(false); }}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition shadow-sm ${
+              panelOpen
+                ? 'bg-indigo-100 text-indigo-700 border border-indigo-200 hover:bg-indigo-200'
+                : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round"
+                d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            {panelOpen ? 'Ocultar panel' : 'Retiro Múltiple'}
+          </button>
+        </div>
       </div>
+
+      {/* PANEL CONSULTA QR / BÚSQUEDA */}
+      {searchOpen && <BarcodeScanner />}
 
       {/* PANEL RETIRO MÚLTIPLE */}
       {panelOpen && (
@@ -204,7 +228,7 @@ export default function SalesPage() {
                 </th>
               ))}
               <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                Descripción
+                Nota de Retiro
               </th>
             </tr>
           </thead>
@@ -225,7 +249,7 @@ export default function SalesPage() {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-slate-400 max-w-xs">
-                  <div className="truncate max-w-[180px]" title={item.description}>{item.description || '—'}</div>
+                  <div className="truncate max-w-[180px]" title={item.withdrawalNote || ''}>{item.withdrawalNote || '—'}</div>
                 </td>
               </tr>
             )) : (
