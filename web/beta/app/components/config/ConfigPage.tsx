@@ -12,6 +12,7 @@ interface NetworkEntry {
 interface NetworkInfo {
   entries: NetworkEntry[];
   port: string;
+  backendPort: string;
   hostname: string;
   platform: string;
   release: string;
@@ -129,55 +130,76 @@ export default function ConfigPage() {
               {networkInfo.entries.length === 0 ? (
                 <p className="text-sm text-slate-500">No se detectaron IPs en la red local.</p>
               ) : (
-                <ul className="space-y-2">
+                <ul className="space-y-3">
                   {networkInfo.entries.map(({ iface, ip }) => {
-                    const url = `http://${ip}:${networkInfo.port}`;
-                    const copied = copiedIp === url;
+                    const frontUrl = `http://${ip}:${networkInfo.port}`;
+                    const backUrl  = `http://${ip}:${networkInfo.backendPort}`;
                     return (
-                      <li key={ip} className="flex items-center justify-between gap-2 bg-slate-50 border border-slate-100 rounded-lg px-4 py-2.5">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[10px] text-slate-400 font-mono uppercase tracking-wide">{iface}</p>
-                          <p className="text-sm font-mono text-indigo-700 truncate">{url}</p>
+                      <li key={ip} className="bg-slate-50 border border-slate-100 rounded-lg px-4 py-3 space-y-2">
+                        <p className="text-[10px] text-slate-400 font-mono uppercase tracking-wide">{iface} · {ip}</p>
+
+                        {/* Fila Frontend */}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <span className="text-[10px] text-indigo-400 font-semibold uppercase tracking-wide">Frontend</span>
+                            <p className="text-sm font-mono text-indigo-700 truncate">{frontUrl}</p>
+                          </div>
+                          <div className="shrink-0 flex items-center gap-1.5">
+                            <button
+                              onClick={() => copyUrl(frontUrl)}
+                              title="Copiar URL"
+                              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition ${
+                                copiedIp === frontUrl
+                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                                  : 'bg-white border-slate-200 text-slate-500 hover:border-indigo-300 hover:text-indigo-600'
+                              }`}
+                            >
+                              {copiedIp === frontUrl ? (
+                                <><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>Copiado</>
+                              ) : (
+                                <><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>Copiar</>
+                              )}
+                            </button>
+                            <button
+                              onClick={() => openQr(frontUrl)}
+                              className="flex items-center gap-1 px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h2M4 12h2m0 0h2M4 16h2m0 0v4m6-11h.01M4 4h4v4H4V4zm12 0h4v4h-4V4zM4 16h4v4H4v-4z" /></svg>
+                              QR
+                            </button>
+                          </div>
                         </div>
-                        <div className="shrink-0 flex items-center gap-1.5">
-                          {/* Copiar URL */}
-                          <button
-                            onClick={() => copyUrl(url)}
-                            title="Copiar URL"
-                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition ${
-                              copied
-                                ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
-                                : 'bg-white border-slate-200 text-slate-500 hover:border-indigo-300 hover:text-indigo-600'
-                            }`}
-                          >
-                            {copied ? (
-                              <>
-                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
-                                Copiado
-                              </>
-                            ) : (
-                              <>
-                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                </svg>
-                                Copiar
-                              </>
-                            )}
-                          </button>
-                          {/* Ver QR */}
-                          <button
-                            onClick={() => openQr(url)}
-                            className="flex items-center gap-1 px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h2M4 12h2m0 0h2M4 16h2m0 0v4m6-11h.01M4 4h4v4H4V4zm12 0h4v4h-4V4zM4 16h4v4H4v-4z" />
-                            </svg>
-                            QR
-                          </button>
+
+                        {/* Fila Backend */}
+                        <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-2">
+                          <div className="min-w-0 flex-1">
+                            <span className="text-[10px] text-emerald-500 font-semibold uppercase tracking-wide">Backend API</span>
+                            <p className="text-sm font-mono text-emerald-700 truncate">{backUrl}</p>
+                          </div>
+                          <div className="shrink-0 flex items-center gap-1.5">
+                            <button
+                              onClick={() => copyUrl(backUrl)}
+                              title="Copiar URL"
+                              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition ${
+                                copiedIp === backUrl
+                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                                  : 'bg-white border-slate-200 text-slate-500 hover:border-emerald-300 hover:text-emerald-600'
+                              }`}
+                            >
+                              {copiedIp === backUrl ? (
+                                <><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>Copiado</>
+                              ) : (
+                                <><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>Copiar</>
+                              )}
+                            </button>
+                            <button
+                              onClick={() => openQr(backUrl)}
+                              className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-lg transition"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h2M4 12h2m0 0h2M4 16h2m0 0v4m6-11h.01M4 4h4v4H4V4zm12 0h4v4h-4V4zM4 16h4v4H4v-4z" /></svg>
+                              QR
+                            </button>
+                          </div>
                         </div>
                       </li>
                     );

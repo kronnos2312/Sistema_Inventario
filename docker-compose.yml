@@ -63,6 +63,10 @@ services:
         NEXT_PUBLIC_SITE_CLIENT:  ${NEXT_PUBLIC_SITE_CLIENT:-TuZona PC Gamer}
         # Pasado como build arg para que next.config.ts lo lea en el build
         INTERNAL_API_URL:         http://backend:8080
+        # IP del host — horneada en la imagen para que el módulo de red/QR la muestre siempre
+        NEXT_PUBLIC_HOST_IP:      ${HOST_IP:-}
+        NEXT_PUBLIC_FRONTEND_PORT: ${FRONTEND_PORT:-3000}
+        NEXT_PUBLIC_BACKEND_PORT:  ${BACKEND_PORT:-8080}
     restart: always
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
@@ -74,7 +78,8 @@ services:
       # URL interna de Docker: Next.js la usa en el servidor para redirigir /api-proxy/*
       INTERNAL_API_URL: http://backend:8080
       # IP real del host para el módulo de configuración / QR
-      HOST_IP:   ${HOST_IP:-}
-      HOST_PORT: ${FRONTEND_PORT:-3000}
+      HOST_IP:          ${HOST_IP:-}
+      HOST_PORT:        ${FRONTEND_PORT:-3000}
+      HOST_PORT_BACKEND: ${BACKEND_PORT:-8080}
     networks:
       - app-net

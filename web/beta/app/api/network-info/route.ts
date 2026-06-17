@@ -16,8 +16,16 @@ export async function GET(request: NextRequest) {
   const host = request.headers.get('host') || 'localhost:3000';
   const port = host.includes(':') ? host.split(':')[1] : '3000';
 
-  // Si HOST_IP está definida (ej. en Docker), usarla directamente
-  const hostIpEnv = process.env.HOST_IP;
+  // Puertos: runtime env primero, luego build-time, luego default
+  const frontendPort = process.env.HOST_PORT
+    || process.env.NEXT_PUBLIC_FRONTEND_PORT
+    || port;
+  const backendPort = process.env.HOST_PORT_BACKEND
+    || process.env.NEXT_PUBLIC_BACKEND_PORT
+    || '8080';
+
+  // IP del host: runtime env primero, luego build-time (horneada en imagen)
+  const hostIpEnv = process.env.HOST_IP || process.env.NEXT_PUBLIC_HOST_IP;
   if (hostIpEnv) {
     const entries: NetworkEntry[] = hostIpEnv
       .split(',')
@@ -27,7 +35,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       entries,
-      port: process.env.HOST_PORT || port,
+      port: frontendPort,
+      backendPort,
       hostname: os.hostname(),
       platform: os.platform(),
       release: os.release(),
@@ -55,7 +64,8 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     entries,
-    port,
+    port: frontendPort,
+    backendPort,
     hostname: os.hostname(),
     platform: os.platform(),
     release: os.release(),
