@@ -6,3 +6,6 @@
 # Variables de entorno con credenciales reales — nunca commitear
 .env
 envs/.env.prod
+
+# Datos de PostgreSQL — generados en runtime, no se versionan
+data/

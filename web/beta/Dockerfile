@@ -32,6 +32,7 @@ FROM node:18-alpine AS runner
 WORKDIR /app
 
 COPY --from=builder /app ./
+RUN mkdir -p /app/public/logo
 
 EXPOSE 3000
 CMD ["npm", "start"]

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import Modal from '../base/context/Modal';
 
@@ -33,6 +33,49 @@ export default function ConfigPage() {
   const [customUrl, setCustomUrl] = useState('');
   const [showManual, setShowManual] = useState(false);
   const [copiedIp, setCopiedIp] = useState<string | null>(null);
+
+  // ── Logo del sistema ──────────────────────────────────────────────────────
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoName, setLogoName] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadMsg, setUploadMsg] = useState<{ type: 'ok' | 'error'; text: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch('/api-proxy/files/config/logo')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.url) {
+          setLogoUrl(`/api-proxy${data.url}`);
+          setLogoName(data.originalName ?? null);
+        }
+      })
+      .catch(() => null);
+  }, []);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setUploadMsg(null);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch('/api-proxy/files/config/logo', { method: 'POST', body: form });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      const newUrl = `/api-proxy${data.url}`;
+      setLogoUrl(newUrl);
+      setLogoName(data.originalName ?? file.name);
+      window.dispatchEvent(new CustomEvent('logo-updated', { detail: newUrl }));
+      setUploadMsg({ type: 'ok', text: 'Logo actualizado correctamente.' });
+    } catch {
+      setUploadMsg({ type: 'error', text: 'Error al subir el logo. Intenta de nuevo.' });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   useEffect(() => {
     fetch('/api/network-info')
@@ -279,6 +322,97 @@ export default function ConfigPage() {
           </button>
         </div>
 
+      </div>
+
+      {/* Card: Logo del sistema */}
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <h3 className="font-medium text-slate-700">Logo del sistema</h3>
+        </div>
+
+        <div className="flex items-center gap-5">
+          {/* Vista previa */}
+          <div className="w-20 h-20 shrink-0 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden">
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logoUrl} alt="Logo actual" className="w-full h-full object-contain p-1" />
+            ) : (
+              <svg className="w-8 h-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            )}
+          </div>
+
+          <div className="flex-1 min-w-0 space-y-1">
+            <p className="text-sm font-medium text-slate-700">Logo actual</p>
+            {logoName ? (
+              <p className="text-xs text-slate-400 font-mono truncate">{logoName}</p>
+            ) : (
+              <p className="text-xs text-slate-400">No hay logo configurado — se usa el logo por defecto.</p>
+            )}
+          </div>
+        </div>
+
+        {/* Subir nuevo logo */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <label className={`cursor-pointer flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition border ${
+            uploading
+              ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
+              : 'bg-indigo-600 hover:bg-indigo-700 border-indigo-600 text-white'
+          }`}>
+            {uploading ? (
+              <>
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+                Subiendo...
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                Cambiar logo
+              </>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              disabled={uploading}
+              onChange={handleLogoUpload}
+              className="hidden"
+            />
+          </label>
+
+          {uploadMsg && (
+            <span className={`text-sm flex items-center gap-1.5 ${
+              uploadMsg.type === 'ok' ? 'text-emerald-600' : 'text-red-500'
+            }`}>
+              {uploadMsg.type === 'ok' ? (
+                <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              )}
+              {uploadMsg.text}
+            </span>
+          )}
+        </div>
+
+        <p className="text-xs text-slate-400">
+          El nuevo logo se aplica en toda la aplicación de forma inmediata. Formatos soportados: PNG, JPG, SVG, WEBP.
+        </p>
       </div>
 
       {/* Modal QR */}

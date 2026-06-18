@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { useLogo } from '@/app/hooks/useLogo';
 
 interface AppLogoProps {
   size?: number;
@@ -9,9 +10,12 @@ interface AppLogoProps {
 }
 
 export default function AppLogo({ size = 40, className = '' }: AppLogoProps) {
+  const logoSrc = useLogo();
   const [failed, setFailed] = useState(false);
 
-  const logoSrc = process.env.NEXT_PUBLIC_LOGO || '/logo/logo.png';
+  useEffect(() => {
+    setFailed(false);
+  }, [logoSrc]);
 
   if (failed) {
     return (
@@ -31,6 +35,7 @@ export default function AppLogo({ size = 40, className = '' }: AppLogoProps) {
       style={{ width: size, height: size }}
     >
       <Image
+        key={logoSrc}
         src={logoSrc}
         alt="Logo"
         fill

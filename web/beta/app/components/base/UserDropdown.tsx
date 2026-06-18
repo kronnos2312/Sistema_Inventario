@@ -3,9 +3,10 @@
 import { useState, useRef, useEffect } from 'react';
 import Systems from './Systems';
 import Image from 'next/image';
-import { ENV } from './constants/env'; 
+import { useLogo } from '@/app/hooks/useLogo';
 
 export default function UserDropdown() {
+  const logoSrc = useLogo();
   const [open, setOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -41,7 +42,8 @@ export default function UserDropdown() {
       </button>
       */}
       <Image
-        src={ENV.BaseLogo}
+        key={logoSrc}
+        src={logoSrc}
         alt="Cargando..."
         width={80}
         height={80}

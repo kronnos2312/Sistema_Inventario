@@ -9,17 +9,49 @@ volumes:
 
 services:
 
+  # ── INIT BASE DE DATOS ───────────────────────────────────────────────────────
+  # Prioridad: 1) DB_DATA_DIR ya tiene datos → nada
+  #            2) ./data/postgres tiene datos → copia a DB_DATA_DIR
+  #            3) volumen legado 'pgdata' tiene datos → copia a DB_DATA_DIR
+  #            4) sin datos previos → Postgres inicia en blanco
+  db-init:
+    image: alpine
+    restart: "no"
+    volumes:
+      - ./data/postgres:/default-data
+      - ${DB_DATA_DIR:-./data/postgres}:/target-data
+      - pgdata:/legacy-data:ro
+    command: >
+      sh -c "
+        if [ -f /target-data/PG_VERSION ]; then
+          echo '[db-init] Datos encontrados en destino, sin acción.';
+        elif [ -f /default-data/PG_VERSION ]; then
+          echo '[db-init] Copiando datos desde ruta por defecto...';
+          cp -a /default-data/. /target-data/;
+          echo '[db-init] Copia completada.';
+        elif [ -f /legacy-data/PG_VERSION ]; then
+          echo '[db-init] Migrando datos desde volumen legado pgdata...';
+          cp -a /legacy-data/. /target-data/;
+          echo '[db-init] Migración completada.';
+        else
+          echo '[db-init] Sin datos previos, Postgres iniciará en blanco.';
+        fi
+      "
+
   # ── BASE DE DATOS ────────────────────────────────────────────────────────────
   db:
     image: postgres:14
     restart: always
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
     environment:
       POSTGRES_DB:       ${DB_NAME:-inventory}
       POSTGRES_USER:     ${DB_USER:-myuser}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-mypassword}
       DB_SCHEMA:         ${DB_SCHEMA:-sysinventarios}
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - ${DB_DATA_DIR:-./data/postgres}:/var/lib/postgresql/data
       - ./init-db.sh:/docker-entrypoint-initdb.d/init.sh
     networks:
       - app-net
@@ -46,6 +78,10 @@ services:
       SPRING_DATASOURCE_PASSWORD:                     ${DB_PASSWORD:-mypassword}
       SPRING_JPA_HIBERNATE_DDL_AUTO:                  ${DDL_AUTO:-update}
       SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: ${DB_SCHEMA:-sysinventarios}
+      # Directorio donde se almacenan los archivos subidos — montar con FILES_DIR
+      FILES_DIR: /app/files
+    volumes:
+      - ${FILES_DIR:-./data/files}:/app/files
     networks:
       - app-net
 
@@ -55,31 +91,29 @@ services:
       context: ./web/beta
       dockerfile: Dockerfile
       args:
-        # /api-proxy es relativo: funciona desde cualquier IP sin rebuild.
-        # Next.js lo proxía a INTERNAL_API_URL via la red interna de Docker.
-        NEXT_PUBLIC_API_BASE_URL: /api-proxy
-        NEXT_PUBLIC_LOGO:         ${NEXT_PUBLIC_LOGO:-/logo/logo.png}
-        NEXT_PUBLIC_SITE_TITLE:   ${NEXT_PUBLIC_SITE_TITLE:-Sistema Inventario}
-        NEXT_PUBLIC_SITE_CLIENT:  ${NEXT_PUBLIC_SITE_CLIENT:-TuZona PC Gamer}
-        # Pasado como build arg para que next.config.ts lo lea en el build
-        INTERNAL_API_URL:         http://backend:8080
-        # IP del host — horneada en la imagen para que el módulo de red/QR la muestre siempre
-        NEXT_PUBLIC_HOST_IP:      ${HOST_IP:-}
+        NEXT_PUBLIC_API_BASE_URL:  /api-proxy
+        NEXT_PUBLIC_LOGO:          /logo/logo.png
+        NEXT_PUBLIC_SITE_TITLE:    ${NEXT_PUBLIC_SITE_TITLE:-Sistema Inventario}
+        NEXT_PUBLIC_SITE_CLIENT:   ${NEXT_PUBLIC_SITE_CLIENT:-TuZona PC Gamer}
+        INTERNAL_API_URL:          http://backend:8080
+        NEXT_PUBLIC_HOST_IP:       ${HOST_IP:-}
         NEXT_PUBLIC_FRONTEND_PORT: ${FRONTEND_PORT:-3000}
         NEXT_PUBLIC_BACKEND_PORT:  ${BACKEND_PORT:-8080}
     restart: always
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     volumes:
-      - ./logo:/app/public/logo
+      # LOGO_DIR = carpeta del SO con el logo estático de respaldo
+      - ${LOGO_DIR:-./logo}:/app/public/logo
     depends_on:
       - backend
     environment:
-      # URL interna de Docker: Next.js la usa en el servidor para redirigir /api-proxy/*
-      INTERNAL_API_URL: http://backend:8080
-      # IP real del host para el módulo de configuración / QR
-      HOST_IP:          ${HOST_IP:-}
-      HOST_PORT:        ${FRONTEND_PORT:-3000}
-      HOST_PORT_BACKEND: ${BACKEND_PORT:-8080}
+      INTERNAL_API_URL:        http://backend:8080
+      HOST_IP:                 ${HOST_IP:-}
+      HOST_PORT:               ${FRONTEND_PORT:-3000}
+      HOST_PORT_BACKEND:       ${BACKEND_PORT:-8080}
+      NEXT_PUBLIC_LOGO:        /logo/logo.png
+      NEXT_PUBLIC_SITE_TITLE:  ${NEXT_PUBLIC_SITE_TITLE:-Sistema Inventario}
+      NEXT_PUBLIC_SITE_CLIENT: ${NEXT_PUBLIC_SITE_CLIENT:-TuZona PC Gamer}
     networks:
       - app-net
