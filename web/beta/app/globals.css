@@ -39,3 +39,20 @@ body {
 .panel-enter {
   animation: slide-down 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* Modal bottom sheet (mobile) — desliza desde abajo */
+@keyframes sheet-up {
+  from { opacity: 0; transform: translateY(100%); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 639px) {
+  .modal-panel-enter {
+    animation: sheet-up 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+}
+
+/* Safe area bottom para bottom nav en iOS */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}

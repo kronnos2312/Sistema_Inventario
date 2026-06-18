@@ -13,17 +13,25 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
   const modalRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
 
-  // Centra el modal antes del primer paint (sin flash visible)
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  // Centra el modal antes del primer paint (desktop only)
   useLayoutEffect(() => {
-    if (!isOpen || !modalRef.current) return;
+    if (!isOpen || !modalRef.current || isMobile) return;
     const el = modalRef.current;
     setPos({
       x: Math.max(16, (window.innerWidth - el.offsetWidth) / 2),
       y: Math.max(16, (window.innerHeight - el.offsetHeight) / 2),
     });
-  }, [isOpen]);
+  }, [isOpen, isMobile]);
 
   // Escape + bloqueo de scroll
   useEffect(() => {
@@ -39,15 +47,15 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
 
   const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
 
-  // Pointer events — cubren mouse, touch y stylus con un solo handler
   const onPointerDown = (e: React.PointerEvent<HTMLElement>) => {
-    e.currentTarget.setPointerCapture(e.pointerId); // captura el puntero aunque salga del header
+    if (isMobile) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
     setDragging(true);
     dragOffset.current = { x: e.clientX - pos.x, y: e.clientY - pos.y };
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLElement>) => {
-    if (!dragging) return;
+    if (!dragging || isMobile) return;
     const el = modalRef.current;
     setPos({
       x: clamp(e.clientX - dragOffset.current.x, 0, window.innerWidth - (el?.offsetWidth ?? 0)),
@@ -58,6 +66,48 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
   const onPointerUp = () => setDragging(false);
 
   if (!isOpen) return null;
+
+  if (isMobile) {
+    return (
+      <div
+        className="fixed inset-0 z-[1000] bg-slate-900/60 backdrop-blur-[2px] flex items-end"
+        onClick={onClose}
+      >
+        <div
+          ref={modalRef}
+          className="modal-panel-enter w-full max-h-[92dvh] flex flex-col bg-white rounded-t-2xl shadow-2xl overflow-hidden"
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Barra de acento */}
+          <div className="h-[3px] bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-400 flex-shrink-0" />
+
+          {/* Handle drag visual (solo decorativo en mobile) */}
+          <div className="flex justify-center pt-2 pb-1 flex-shrink-0">
+            <div className="w-10 h-1 rounded-full bg-slate-300" />
+          </div>
+
+          {/* Header */}
+          <header className="flex items-center justify-between px-5 py-3 border-b border-slate-100 flex-shrink-0">
+            <h3 className="text-[15px] font-semibold text-slate-800 leading-tight">{title}</h3>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+              aria-label="Cerrar"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </header>
+
+          {/* Cuerpo */}
+          <section className="flex-1 overflow-y-auto p-4 pb-[env(safe-area-inset-bottom,1rem)]">
+            {children}
+          </section>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -86,15 +136,12 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
           onPointerCancel={onPointerUp}
         >
           <div className="flex items-center gap-2.5">
-            {/* Icono de agarre */}
             <div className="grid grid-cols-2 gap-[3px] opacity-30 flex-shrink-0">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="w-[4px] h-[4px] rounded-full bg-slate-500" />
               ))}
             </div>
-            <h3 className="text-[15px] font-semibold text-slate-800 leading-tight">
-              {title}
-            </h3>
+            <h3 className="text-[15px] font-semibold text-slate-800 leading-tight">{title}</h3>
           </div>
 
           <button

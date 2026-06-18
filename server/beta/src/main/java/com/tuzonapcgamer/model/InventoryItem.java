@@ -4,7 +4,9 @@ import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 @Entity
 @Table(name = "inventoryitem")
@@ -56,6 +58,9 @@ public class InventoryItem extends BaseEntity{
      */
     @Column(name = "withdrawal_note", columnDefinition = "TEXT")
     private String withdrawalNote;
+
+    @OneToMany(mappedBy = "inventoryItem", fetch = FetchType.EAGER)
+    private List<InventoryFile> images = new ArrayList<>();
 
     public InventoryItem(Date creationAt, Long creatorId, String creatorName, String barcode, int quantity, Date arrivalDate, Product product, BigDecimal price, String description) {
         super(creationAt, creatorId, creatorName);
@@ -143,4 +148,7 @@ public class InventoryItem extends BaseEntity{
     public void setWithdrawalNote(String withdrawalNote) {
         this.withdrawalNote = withdrawalNote;
     }
+
+    public List<InventoryFile> getImages() { return images; }
+    public void setImages(List<InventoryFile> images) { this.images = images; }
 }

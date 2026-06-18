@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.math.BigDecimal;
 import java.time.ZoneId;
 import java.util.Date;
+import java.util.List;
 
 public class InventoryDTO {
     private Long id;
@@ -16,8 +17,17 @@ public class InventoryDTO {
     private String arrivalDate;
     private String barcode;
 
+    private List<String> imageCodes;
+    private List<InventoryFileDTO> images;
+
     private String codeName;
     private String messageName;
+
+    public List<String> getImageCodes() { return imageCodes; }
+    public void setImageCodes(List<String> imageCodes) { this.imageCodes = imageCodes; }
+
+    public List<InventoryFileDTO> getImages() { return images; }
+    public void setImages(List<InventoryFileDTO> images) { this.images = images; }
 
     public String getCodeName() {
         return codeName;

@@ -1,8 +1,11 @@
 package com.tuzonapcgamer.service.implement;
 
+import com.tuzonapcgamer.dto.InventoryFileDTO;
 import com.tuzonapcgamer.dto.WInventory;
 import com.tuzonapcgamer.dto.InventoryDTO;
+import com.tuzonapcgamer.model.InventoryFile;
 import com.tuzonapcgamer.model.InventoryItem;
+import com.tuzonapcgamer.repository.InventoryFileREP;
 import com.tuzonapcgamer.repository.InventoryItemREP;
 import com.tuzonapcgamer.service.facade.InventoryService;
 import jakarta.persistence.EntityNotFoundException;
@@ -10,14 +13,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class InventoryImpl implements InventoryService {
 
     @Autowired private InventoryItemREP repository;
+    @Autowired private InventoryFileREP inventoryFileREP;
 
     @Override
     public List<InventoryItem> getAll() {
@@ -78,10 +81,39 @@ public class InventoryImpl implements InventoryService {
     }
 
     private InventoryDTO success(InventoryDTO dto, InventoryItem item, String message) {
-        save(item);
+        InventoryItem saved = save(item);
+        syncImages(saved, dto.getImageCodes());
+        List<InventoryFile> current = inventoryFileREP.findByInventoryItemId(saved.getId());
+        List<InventoryFileDTO> imageDTOs = current.stream()
+                .map(img -> new InventoryFileDTO(img.getId(), img.getCode(), img.getUrl()))
+                .collect(Collectors.toList());
+        dto.setImages(imageDTOs);
         dto.setCodeName("success");
         dto.setMessageName(message);
         return dto;
+    }
+
+    private void syncImages(InventoryItem item, List<String> codes) {
+        if (codes == null) return;
+        List<InventoryFile> existing = inventoryFileREP.findByInventoryItemId(item.getId());
+        Set<String> newCodes = new HashSet<>(codes);
+        Set<String> existingCodes = existing.stream().map(InventoryFile::getCode).collect(Collectors.toSet());
+
+        List<InventoryFile> toRemove = existing.stream()
+                .filter(img -> !newCodes.contains(img.getCode()))
+                .collect(Collectors.toList());
+        inventoryFileREP.deleteAll(toRemove);
+
+        List<InventoryFile> toAdd = codes.stream()
+                .filter(code -> !existingCodes.contains(code))
+                .map(code -> {
+                    InventoryFile f = new InventoryFile();
+                    f.setCode(code);
+                    f.setInventoryItem(item);
+                    return f;
+                })
+                .collect(Collectors.toList());
+        inventoryFileREP.saveAll(toAdd);
     }
 
 

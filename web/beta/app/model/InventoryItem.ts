@@ -1,5 +1,11 @@
 import { Product } from "./Product";
 
+export type InventoryFile = {
+    id?: number;
+    code: string;
+    url: string;
+};
+
 export type InventoryItem = {
     id: number| "";
     quantity: number | "";
@@ -10,4 +16,6 @@ export type InventoryItem = {
     arrivalDate:string;
     outDate:string | "";
     barcode:string;
+    images?: InventoryFile[];
+    imageCodes?: string[];
 };
