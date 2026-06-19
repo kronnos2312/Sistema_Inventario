@@ -90,7 +90,7 @@ export default function InventoryEditor({ initialData, onSave, onCancel }: Props
     const { name, value } = e.target;
     setItem(prev => ({
       ...prev,
-      [name]: name === 'quantity' || name === 'price' ? Number(value) : value,
+      [name]: name === 'quantity' || name === 'price' || name === 'netValue' ? Number(value) : value,
     }));
     setErrors(prev => ({ ...prev, [name]: '' }));
   };
@@ -199,17 +199,44 @@ export default function InventoryEditor({ initialData, onSave, onCancel }: Props
               </svg>
               Precio
             </Label>
-            <input
-              type="number"
-              name="price"
-              value={item.price}
-              onChange={handleChange}
-              min={0}
-              step="0.01"
-              placeholder="0.00"
-              className={inputCls(errors.price)}
-            />
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium pointer-events-none select-none">$</span>
+              <input
+                type="number"
+                name="price"
+                value={item.price}
+                onChange={handleChange}
+                min={0}
+                step="0.01"
+                placeholder="0.00"
+                className={`${inputCls(errors.price)} pl-7`}
+              />
+            </div>
             <FieldError msg={errors.price} />
+          </div>
+
+          {/* Valor neto */}
+          <div>
+            <Label required>
+              <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
+              </svg>
+              Valor neto
+            </Label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium pointer-events-none select-none">$</span>
+              <input
+                type="number"
+                name="netValue"
+                value={item.netValue ?? ''}
+                onChange={handleChange}
+                min={0}
+                step="0.01"
+                placeholder="0.00"
+                className={`${inputCls(errors.netValue)} pl-7`}
+              />
+            </div>
+            <FieldError msg={errors.netValue} />
           </div>
 
           {/* Código de barras */}
@@ -447,7 +474,7 @@ export default function InventoryEditor({ initialData, onSave, onCancel }: Props
       </div>
 
       {/* Footer actions */}
-      <div className="flex gap-3 pt-3 border-t border-slate-100">
+      <div className="sticky bottom-0 bg-white flex gap-3 pt-3 pb-1 border-t border-slate-100 -mx-4 px-4 z-10">
         {onCancel && (
           <button
             type="button"

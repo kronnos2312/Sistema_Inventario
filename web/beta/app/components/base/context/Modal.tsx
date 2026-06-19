@@ -75,11 +75,11 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
       >
         <div
           ref={modalRef}
-          className="modal-panel-enter w-full max-h-[92dvh] flex flex-col bg-white rounded-t-2xl shadow-2xl overflow-hidden"
+          className="modal-panel-enter w-full max-h-[95dvh] flex flex-col bg-white rounded-t-2xl shadow-2xl"
           onClick={e => e.stopPropagation()}
         >
           {/* Barra de acento */}
-          <div className="h-[3px] bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-400 flex-shrink-0" />
+          <div className="h-[3px] bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-400 flex-shrink-0 rounded-t-2xl" />
 
           {/* Handle drag visual (solo decorativo en mobile) */}
           <div className="flex justify-center pt-2 pb-1 flex-shrink-0">
@@ -87,7 +87,7 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
           </div>
 
           {/* Header */}
-          <header className="flex items-center justify-between px-5 py-3 border-b border-slate-100 flex-shrink-0">
+          <header className="flex items-center justify-between px-4 py-3 border-b border-slate-100 flex-shrink-0">
             <h3 className="text-[15px] font-semibold text-slate-800 leading-tight">{title}</h3>
             <button
               onClick={onClose}
@@ -100,8 +100,8 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
             </button>
           </header>
 
-          {/* Cuerpo */}
-          <section className="flex-1 overflow-y-auto p-4 pb-[env(safe-area-inset-bottom,1rem)]">
+          {/* Cuerpo — scroll independiente sin encadenarse con la página */}
+          <section className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
             {children}
           </section>
         </div>
@@ -157,7 +157,7 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
         </header>
 
         {/* Cuerpo */}
-        <section className="flex-1 overflow-y-auto p-5 scrollbar-thin">
+        <section className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-5 scrollbar-thin">
           {children}
         </section>
       </div>

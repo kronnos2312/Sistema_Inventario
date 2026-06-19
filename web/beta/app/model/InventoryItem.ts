@@ -10,6 +10,7 @@ export type InventoryItem = {
     id: number| "";
     quantity: number | "";
     price: number | "";
+    netValue?: number | "";
     description: string;
     withdrawalNote?: string;
     product: Product;

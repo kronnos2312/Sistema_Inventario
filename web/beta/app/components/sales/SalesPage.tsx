@@ -77,7 +77,7 @@ export default function SalesPage() {
   ];
 
   return (
-    <div className="p-4 sm:p-6 bg-slate-50 min-h-screen">
+    <div className="p-3 sm:p-6">
 
       {/* HEADER */}
       <div className="flex items-start justify-between mb-5 gap-3">

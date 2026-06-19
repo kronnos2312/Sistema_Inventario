@@ -118,7 +118,7 @@ export default function ManualInventory({ initialData, onSend, onCancel }: Props
       </div>
 
       {/* Footer actions */}
-      <div className="flex gap-3 pt-3 border-t border-slate-100">
+      <div className="sticky bottom-0 bg-white flex gap-3 pt-3 pb-1 border-t border-slate-100 -mx-4 px-4 z-10">
         {onCancel && (
           <button
             type="button"

@@ -119,8 +119,8 @@ export default function Layout({ children, activeTab, onTabChange }: LayoutProps
       </div>
 
       {/* Page content */}
-      <main className="flex-1 px-3 sm:px-6 pt-3 sm:pt-0 pb-[5.5rem] sm:pb-6">
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 min-h-[60vh] overflow-hidden">
+      <main className="flex-1 px-3 sm:px-6 pt-3 sm:pt-0 pb-[5.5rem] sm:pb-6 min-h-0 overflow-y-auto">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 min-h-[60vh]">
           {children}
         </div>
       </main>

@@ -12,6 +12,7 @@ public class InventoryDTO {
     private Long id;
     private Long quantity;
     private Long price;
+    private Long netValue;
     private String description;
     private ProductDTO product;
     private String arrivalDate;
@@ -69,6 +70,14 @@ public class InventoryDTO {
         this.price = price;
     }
 
+    public Long getNetValue() {
+        return netValue;
+    }
+
+    public void setNetValue(Long netValue) {
+        this.netValue = netValue;
+    }
+
     public String getDescription() {
         return description;
     }
@@ -108,6 +117,7 @@ public class InventoryDTO {
         current.setQuantity(this.quantity.intValue());
         current.setArrivalDate(buildFromString(this.arrivalDate));
         current.setPrice(BigDecimal.valueOf(this.price));
+        current.setNetValue(this.netValue != null ? BigDecimal.valueOf(this.netValue) : null);
         current.setDescription(this.description);
 
         return current;

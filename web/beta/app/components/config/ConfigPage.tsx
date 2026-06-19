@@ -67,7 +67,6 @@ export default function ConfigPage() {
       const newUrl = `/api-proxy${data.url}`;
       setLogoUrl(newUrl);
       setLogoName(data.originalName ?? file.name);
-      window.dispatchEvent(new CustomEvent('logo-updated', { detail: newUrl }));
       setUploadMsg({ type: 'ok', text: 'Logo actualizado correctamente.' });
     } catch {
       setUploadMsg({ type: 'error', text: 'Error al subir el logo. Intenta de nuevo.' });

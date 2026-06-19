@@ -48,6 +48,12 @@ public class InventoryItem extends BaseEntity{
     private BigDecimal price;
 
     /**
+     * Valor neto del inventario al momento del ingreso (quantity × price).
+     */
+    @Column(name = "net_value", precision = 15, scale = 2)
+    private BigDecimal netValue;
+
+    /**
      * Relacion con la descripcion del producto estado empaque estado del producto caducidad ETC
      */
     @Column(name = "description", nullable = false, columnDefinition = "TEXT")
@@ -131,6 +137,14 @@ public class InventoryItem extends BaseEntity{
 
     public void setPrice(BigDecimal price) {
         this.price = price;
+    }
+
+    public BigDecimal getNetValue() {
+        return netValue;
+    }
+
+    public void setNetValue(BigDecimal netValue) {
+        this.netValue = netValue;
     }
 
     public String getDescription() {
