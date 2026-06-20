@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useInventoryStore } from '@/app/store/useInventoryStore';
+import QrScanButton from '@/app/components/base/QrScanButton';
 
 interface CartItem {
   barcode: string;
@@ -167,6 +168,13 @@ export default function MultiWithdrawalPanel({ onClose }: Props) {
                     : 'border-slate-200 hover:border-slate-300 focus:ring-indigo-500/25 focus:border-indigo-500'
                 }`}
                 autoFocus
+              />
+              <QrScanButton
+                onScan={code => {
+                  setBarcodeInput(code);
+                  setInputError('');
+                  setTimeout(() => inputRef.current?.focus(), 50);
+                }}
               />
               <button
                 onClick={addItem}

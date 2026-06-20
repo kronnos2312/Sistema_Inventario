@@ -56,3 +56,19 @@ body {
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
+
+/* Banner de permisos de cámara */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Línea de barrido del escáner QR */
+@keyframes scan {
+  0%   { top: 4px;    opacity: 1; }
+  45%  { top: calc(100% - 4px); opacity: 1; }
+  50%  { opacity: 0; }
+  55%  { top: 4px;    opacity: 0; }
+  60%  { opacity: 1; }
+  100% { top: calc(100% - 4px); opacity: 1; }
+}

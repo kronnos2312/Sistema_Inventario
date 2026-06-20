@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { InventoryItem } from '@/app/model/InventoryItem';
 import { useInventoryStore } from '@/app/store/useInventoryStore';
 import { userProductStore } from '@/app/store/userProductStore';
+import QrScanButton from '@/app/components/base/QrScanButton';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -247,14 +248,21 @@ export default function InventoryEditor({ initialData, onSave, onCancel }: Props
               </svg>
               Código de barras
             </Label>
-            <input
-              type="text"
-              name="barcode"
-              value={item.barcode}
-              onChange={handleChange}
-              placeholder="Ej: 7501234567890"
-              className={`${inputCls(errors.barcode)} font-mono`}
-            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                name="barcode"
+                value={item.barcode}
+                onChange={handleChange}
+                placeholder="Ej: 7501234567890"
+                className={`${inputCls(errors.barcode)} font-mono flex-1 min-w-0`}
+              />
+              <QrScanButton
+                onScan={code =>
+                  setItem(prev => ({ ...prev, barcode: code }))
+                }
+              />
+            </div>
             <FieldError msg={errors.barcode} />
           </div>
 

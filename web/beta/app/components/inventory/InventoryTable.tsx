@@ -5,6 +5,7 @@ import { useInventoryStore } from '@/app/store/useInventoryStore';
 import InventoryEditor from '../inventory/editor/Inventory';
 import Modal from '../base/context/Modal';
 import ConfirmDialog from '../base/context/ConfirmDialog';
+import QrScanButton from '../base/QrScanButton';
 import { InventoryItem } from '@/app/model/InventoryItem';
 import { Product } from '@/app/model/Product';
 
@@ -168,27 +169,30 @@ export default function InventoryTable() {
       {/* CONTROLES */}
       <div className="flex flex-col gap-3 mb-5">
         {/* Búsqueda */}
-        <div className="relative">
-          <svg className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input
-            type="text"
-            placeholder="Buscar código, modelo, precio, marca..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-10 pr-10 py-3 border border-slate-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          />
-          {search && (
-            <button
-              onClick={() => setSearch('')}
-              className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          )}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <svg className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Buscar código, modelo, precio, marca..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-10 pr-10 py-3 border border-slate-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+          <QrScanButton onScan={code => setSearch(code)} />
         </div>
 
         {/* Filtros estado + items por página */}

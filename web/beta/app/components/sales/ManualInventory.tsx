@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { WInventory } from '@/app/model/WithdrawInventory';
 import { useInventoryStore } from '@/app/store/useInventoryStore';
+import QrScanButton from '@/app/components/base/QrScanButton';
 
 type Props = {
   initialData: WInventory;
@@ -106,14 +107,21 @@ export default function ManualInventory({ initialData, onSend, onCancel }: Props
           </svg>
           Código de barras
         </Label>
-        <input
-          name="barCode"
-          value={item.barCode}
-          onChange={handleChange}
-          placeholder="Escanea o ingresa el código"
-          autoFocus
-          className={`${inputCls(errors.barCode)} font-mono tracking-wide`}
-        />
+        <div className="flex gap-2">
+          <input
+            name="barCode"
+            value={item.barCode}
+            onChange={handleChange}
+            placeholder="Escanea o ingresa el código"
+            autoFocus
+            className={`${inputCls(errors.barCode)} font-mono tracking-wide flex-1 min-w-0`}
+          />
+          <QrScanButton
+            onScan={code =>
+              setItem(prev => ({ ...prev, barCode: code }))
+            }
+          />
+        </div>
         <FieldError msg={errors.barCode} />
       </div>
 

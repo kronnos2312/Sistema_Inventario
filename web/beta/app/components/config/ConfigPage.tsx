@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import Modal from '../base/context/Modal';
+import { useDeviceConfig } from '@/app/hooks/useDeviceConfig';
 
 interface NetworkEntry {
   iface: string;
@@ -25,6 +26,8 @@ const PLATFORM_LABEL: Record<string, string> = {
   darwin: 'macOS',
 };
 
+type CamNative = 'idle' | 'prompt' | 'granted' | 'denied' | 'unavailable';
+
 export default function ConfigPage() {
   const [networkInfo, setNetworkInfo] = useState<NetworkInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -33,6 +36,57 @@ export default function ConfigPage() {
   const [customUrl, setCustomUrl] = useState('');
   const [showManual, setShowManual] = useState(false);
   const [copiedIp, setCopiedIp] = useState<string | null>(null);
+
+  // ── Cámara ───────────────────────────────────────────────────────────────
+  const { status: deviceCamStatus, saveCameraPermission } = useDeviceConfig();
+  const [camNative, setCamNative] = useState<CamNative>('idle');
+  const [camRequesting, setCamRequesting] = useState(false);
+
+  const isInsecureHttp =
+    typeof window !== 'undefined' &&
+    window.location.protocol === 'http:' &&
+    window.location.hostname !== 'localhost' &&
+    window.location.hostname !== '127.0.0.1';
+
+  const siteOrigin =
+    typeof window !== 'undefined' ? window.location.origin : '';
+
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      setCamNative('unavailable');
+      return;
+    }
+    if ('permissions' in navigator) {
+      navigator.permissions
+        .query({ name: 'camera' as PermissionName })
+        .then(r => {
+          setCamNative(r.state as CamNative);
+          r.addEventListener('change', () => setCamNative(r.state as CamNative));
+        })
+        .catch(() => setCamNative('prompt'));
+    } else {
+      setCamNative('prompt');
+    }
+  }, []);
+
+  const requestCamPermission = async () => {
+    setCamRequesting(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+      });
+      stream.getTracks().forEach(t => t.stop());
+      setCamNative('granted');
+      await saveCameraPermission();
+    } catch (err) {
+      if (err instanceof Error && err.name === 'NotAllowedError') setCamNative('denied');
+    } finally {
+      setCamRequesting(false);
+    }
+  };
+
+  // Estado efectivo: si backend ya confirmó, mostramos como concedido
+  const camGranted = deviceCamStatus === 'granted' || camNative === 'granted';
 
   // ── Logo del sistema ──────────────────────────────────────────────────────
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -412,6 +466,149 @@ export default function ConfigPage() {
         <p className="text-xs text-slate-400">
           El nuevo logo se aplica en toda la aplicación de forma inmediata. Formatos soportados: PNG, JPG, SVG, WEBP.
         </p>
+      </div>
+
+      {/* Card: Cámara y escáner QR */}
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <h3 className="font-medium text-slate-700">Cámara y escáner QR</h3>
+          {camGranted && (
+            <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 font-semibold px-2 py-0.5 rounded-full">
+              Activo
+            </span>
+          )}
+          {camNative === 'denied' && (
+            <span className="ml-auto text-xs bg-amber-100 text-amber-700 font-semibold px-2 py-0.5 rounded-full">
+              Bloqueado
+            </span>
+          )}
+        </div>
+
+        <p className="text-sm text-slate-500">
+          Autoriza el uso de la cámara para escanear códigos QR y de barras en los formularios de inventario y ventas.
+        </p>
+
+        {/* Concedido */}
+        {camGranted && (
+          <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+            <svg className="w-5 h-5 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <p className="text-sm font-semibold text-emerald-800">Acceso concedido</p>
+              <p className="text-xs text-emerald-600 mt-0.5">
+                La cámara está disponible para escanear códigos en toda la aplicación.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Bloqueado */}
+        {!camGranted && camNative === 'denied' && (
+          <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+            <svg className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round"
+                d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+            <div>
+              <p className="text-sm font-semibold text-amber-800">Acceso bloqueado por el navegador</p>
+              <p className="text-xs text-amber-700 mt-0.5">
+                Ve a los ajustes del navegador → Privacidad → Permisos del sitio → Cámara, y habilita el acceso para este sitio.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Sin configurar / disponible para pedir */}
+        {!camGranted && camNative !== 'denied' && camNative !== 'unavailable' && (
+          <button
+            onClick={requestCamPermission}
+            disabled={camRequesting}
+            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:bg-slate-200 disabled:text-slate-400 text-white text-sm font-semibold rounded-xl transition touch-manipulation"
+          >
+            {camRequesting ? (
+              <>
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+                Solicitando acceso...
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round"
+                    d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Autorizar cámara
+              </>
+            )}
+          </button>
+        )}
+
+        {camNative === 'unavailable' && (
+          isInsecureHttp ? (
+            <div className="space-y-3">
+              <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                <svg className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round"
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                <div>
+                  <p className="text-sm font-semibold text-amber-800">Conexión HTTP — cámara bloqueada</p>
+                  <p className="text-xs text-amber-700 mt-1 leading-relaxed">
+                    Chrome en Android solo permite cámara en conexiones seguras (HTTPS). Para habilitarla en red local sigue estos pasos:
+                  </p>
+                </div>
+              </div>
+
+              <ol className="text-xs text-slate-600 space-y-2 pl-1">
+                <li className="flex gap-2">
+                  <span className="w-5 h-5 shrink-0 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-[10px]">1</span>
+                  <span>En Chrome Android abre <span className="font-mono font-semibold">chrome://flags</span> en la barra de direcciones.</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="w-5 h-5 shrink-0 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-[10px]">2</span>
+                  <span>Busca <span className="font-mono font-semibold">Insecure origins treated as secure</span> y actívalo (Enable).</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="w-5 h-5 shrink-0 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-[10px]">3</span>
+                  <span>Agrega esta URL en el campo de texto:</span>
+                </li>
+              </ol>
+
+              {siteOrigin && (
+                <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                  <span className="font-mono text-sm text-indigo-700 flex-1 break-all">{siteOrigin}</span>
+                  <button
+                    onClick={() => navigator.clipboard?.writeText(siteOrigin)}
+                    title="Copiar"
+                    className="shrink-0 text-slate-400 hover:text-indigo-600 transition"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round"
+                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+
+              <p className="text-xs text-slate-400">
+                Después reinicia Chrome y vuelve a esta página para autorizar la cámara.
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-400">
+              Este dispositivo o navegador no permite el acceso a la cámara.
+            </p>
+          )
+        )}
       </div>
 
       {/* Modal QR */}
