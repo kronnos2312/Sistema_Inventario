@@ -2,9 +2,31 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
+import { DecodeHintType, BarcodeFormat } from '@zxing/library';
 
 type Props = {
   onScan: (code: string) => void;
+};
+
+const SCAN_HINTS = new Map<DecodeHintType, unknown>([
+  [DecodeHintType.TRY_HARDER, true],
+  [DecodeHintType.POSSIBLE_FORMATS, [
+    BarcodeFormat.QR_CODE,
+    BarcodeFormat.EAN_13,
+    BarcodeFormat.EAN_8,
+    BarcodeFormat.CODE_128,
+    BarcodeFormat.CODE_39,
+    BarcodeFormat.UPC_A,
+    BarcodeFormat.UPC_E,
+    BarcodeFormat.DATA_MATRIX,
+  ]],
+]);
+
+const VIDEO_CONSTRAINTS: MediaTrackConstraints = {
+  facingMode: { ideal: 'environment' },
+  width: { ideal: 1280 },
+  height: { ideal: 720 },
+  frameRate: { ideal: 30 },
 };
 
 export default function QrScanButton({ onScan }: Props) {
@@ -21,11 +43,11 @@ export default function QrScanButton({ onScan }: Props) {
   useEffect(() => {
     if (!open) return;
     setError('');
-    const reader = new BrowserMultiFormatReader();
+    const reader = new BrowserMultiFormatReader(SCAN_HINTS, { delayBetweenScanAttempts: 150 });
 
     reader
       .decodeFromConstraints(
-        { video: { facingMode: { ideal: 'environment' } } },
+        { video: VIDEO_CONSTRAINTS },
         videoRef.current!,
         (result, err) => {
           if (result) {

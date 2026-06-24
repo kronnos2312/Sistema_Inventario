@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
+import { DecodeHintType, BarcodeFormat } from '@zxing/library';
 import { useInventoryStore } from '@/app/store/useInventoryStore';
 import { InventoryItem } from '@/app/model/InventoryItem';
 
@@ -77,6 +78,20 @@ function ResultCard({ item }: { item: InventoryItem }) {
   );
 }
 
+const SCAN_HINTS = new Map<DecodeHintType, unknown>([
+  [DecodeHintType.TRY_HARDER, true],
+  [DecodeHintType.POSSIBLE_FORMATS, [
+    BarcodeFormat.QR_CODE,
+    BarcodeFormat.EAN_13,
+    BarcodeFormat.EAN_8,
+    BarcodeFormat.CODE_128,
+    BarcodeFormat.CODE_39,
+    BarcodeFormat.UPC_A,
+    BarcodeFormat.UPC_E,
+    BarcodeFormat.DATA_MATRIX,
+  ]],
+]);
+
 export default function BarcodeScanner() {
   const { inventory } = useInventoryStore();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -97,19 +112,23 @@ export default function BarcodeScanner() {
   useEffect(() => {
     if (!scanning) return;
     setCamError('');
-    const reader = new BrowserMultiFormatReader();
+    const reader = new BrowserMultiFormatReader(SCAN_HINTS, { delayBetweenScanAttempts: 150 });
 
     reader
-      .decodeFromVideoDevice(undefined, videoRef.current!, (res, err) => {
-        if (res) {
-          setQuery(res.getText());
-          stopCamera();
-          inputRef.current?.focus();
-        }
-        if (err && err.name !== 'NotFoundException') {
-          setCamError('Error al leer el código');
-        }
-      })
+      .decodeFromConstraints(
+        { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } } },
+        videoRef.current!,
+        (res, err) => {
+          if (res) {
+            setQuery(res.getText());
+            stopCamera();
+            inputRef.current?.focus();
+          }
+          if (err && err.name !== 'NotFoundException') {
+            setCamError('Error al leer el código');
+          }
+        },
+      )
       .catch(() => setCamError('No se pudo acceder a la cámara'));
 
     return () => { BrowserMultiFormatReader.releaseAllStreams(); };
