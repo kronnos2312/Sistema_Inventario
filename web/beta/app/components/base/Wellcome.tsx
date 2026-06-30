@@ -11,6 +11,7 @@ import { InventoryItem } from '@/app/model/InventoryItem';
 import { WInventory } from '@/app/model/WithdrawInventory';
 import { useInventoryStore } from '@/app/store/useInventoryStore';
 import { userProductStore } from '@/app/store/userProductStore';
+import { useSiteConfig } from '@/app/hooks/useSiteConfig';
 
 type Tab = 'bienvenida' | 'productos' | 'inventarios' | 'ventas';
 type EditorType = 'product' | 'inventory' | 'withdrawal' | null;
@@ -19,15 +20,13 @@ type Props = {
   onNavigate?: (tab: Tab) => void;
 };
 
-const emptyProduct: Product = { id: 0, name: '', brand: '', model: '' };
+const emptyProduct: Product = { id: 0, name: '', brand: '', model: '', category: null };
 const emptyInventory: InventoryItem = {
   id: 0, quantity: 0, price: 0, description: '',
   arrivalDate: '', outDate: '', barcode: '', product: emptyProduct,
 };
 const emptyW: WInventory = { barCode: '', dateOut: '' };
 
-const appClient = process.env.NEXT_PUBLIC_SITE_CLIENT || 'Tu Empresa';
-const appTitle = process.env.NEXT_PUBLIC_SITE_TITLE || 'Sistema de Inventario';
 
 type QuickAction = {
   label: string;
@@ -41,6 +40,7 @@ type QuickAction = {
 export default function Welcome({ onNavigate }: Props) {
   const [open, setOpen] = useState(false);
   const [editor, setEditor] = useState<EditorType>(null);
+  const { title: appTitle, client: appClient } = useSiteConfig();
 
   const { inventory, fetchInventory } = useInventoryStore();
   const { product, fetchProduct } = userProductStore();

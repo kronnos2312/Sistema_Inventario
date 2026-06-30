@@ -132,7 +132,6 @@ export default function BarcodeScanner() {
       .catch(() => setCamError('No se pudo acceder a la cámara'));
 
     return () => { BrowserMultiFormatReader.releaseAllStreams(); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scanning]);
 
   /* ── Filtro en tiempo real ── */

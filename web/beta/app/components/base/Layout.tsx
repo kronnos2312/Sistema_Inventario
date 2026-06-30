@@ -1,6 +1,9 @@
+'use client';
+
 import React, { ReactNode } from 'react';
 import UserDropdown from './UserDropdown';
 import AppLogo from './AppLogo';
+import { useSiteConfig } from '@/app/hooks/useSiteConfig';
 
 type Tab = 'bienvenida' | 'productos' | 'inventarios' | 'ventas' | 'configuracion';
 
@@ -71,6 +74,8 @@ const tabs: { key: Tab; label: string; shortLabel: string; icon: React.ReactNode
 ];
 
 export default function Layout({ children, activeTab, onTabChange }: LayoutProps) {
+  const { title, client } = useSiteConfig();
+
   return (
     <div className="flex flex-col min-h-screen bg-slate-50">
 
@@ -79,12 +84,12 @@ export default function Layout({ children, activeTab, onTabChange }: LayoutProps
         <div className="flex items-center gap-3">
           <AppLogo size={32} />
           <span className="text-sm font-semibold text-slate-700 hidden sm:block">
-            {process.env.NEXT_PUBLIC_SITE_TITLE || 'Sistema Inventario'}
+            {title}
           </span>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-slate-400 hidden sm:block">
-            {process.env.NEXT_PUBLIC_SITE_CLIENT || ''}
+            {client}
           </span>
           <UserDropdown />
         </div>

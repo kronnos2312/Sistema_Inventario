@@ -13,7 +13,7 @@ type SortKey = 'id' | 'quantity' | 'price' | 'arrivalDate' | 'outDate' | 'barcod
 type SortDir = 'asc' | 'desc';
 type StatusFilter = 'all' | 'in-stock' | 'retired';
 
-const emptyProduct: Product = { id: 0, name: '', brand: '', model: '' };
+const emptyProduct: Product = { id: 0, name: '', brand: '', model: '', category: null };
 const emptyItem: InventoryItem = {
   id: 0, quantity: 0, price: 0, description: '',
   arrivalDate: '', outDate: '', barcode: '', product: emptyProduct,

@@ -78,8 +78,9 @@ services:
       SPRING_DATASOURCE_PASSWORD:                     ${DB_PASSWORD:-mypassword}
       SPRING_JPA_HIBERNATE_DDL_AUTO:                  ${DDL_AUTO:-update}
       SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: ${DB_SCHEMA:-sysinventarios}
-      # Directorio donde se almacenan los archivos subidos — montar con FILES_DIR
       FILES_DIR: /app/files
+      # IP WiFi del host — detectada automáticamente por start.bat / start.sh
+      HOST_IP: ${HOST_IP:-}
     volumes:
       - ${FILES_DIR:-./data/files}:/app/files
     networks:
@@ -92,27 +93,20 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_BASE_URL:  /api-proxy
-        NEXT_PUBLIC_LOGO:          /logo/logo.png
         NEXT_PUBLIC_SITE_TITLE:    ${NEXT_PUBLIC_SITE_TITLE:-Sistema Inventario}
         NEXT_PUBLIC_SITE_CLIENT:   ${NEXT_PUBLIC_SITE_CLIENT:-TuZona PC Gamer}
         INTERNAL_API_URL:          http://backend:8080
-        NEXT_PUBLIC_HOST_IP:       ${HOST_IP:-}
         NEXT_PUBLIC_FRONTEND_PORT: ${FRONTEND_PORT:-3000}
         NEXT_PUBLIC_BACKEND_PORT:  ${BACKEND_PORT:-8080}
     restart: always
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
-    volumes:
-      # LOGO_DIR = carpeta del SO con el logo estático de respaldo
-      - ${LOGO_DIR:-./logo}:/app/public/logo
     depends_on:
       - backend
     environment:
       INTERNAL_API_URL:        http://backend:8080
-      HOST_IP:                 ${HOST_IP:-}
       HOST_PORT:               ${FRONTEND_PORT:-3000}
       HOST_PORT_BACKEND:       ${BACKEND_PORT:-8080}
-      NEXT_PUBLIC_LOGO:        /logo/logo.png
       NEXT_PUBLIC_SITE_TITLE:  ${NEXT_PUBLIC_SITE_TITLE:-Sistema Inventario}
       NEXT_PUBLIC_SITE_CLIENT: ${NEXT_PUBLIC_SITE_CLIENT:-TuZona PC Gamer}
     networks:

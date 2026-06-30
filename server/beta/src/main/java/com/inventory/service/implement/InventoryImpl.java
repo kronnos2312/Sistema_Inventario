@@ -28,6 +28,16 @@ public class InventoryImpl implements InventoryService {
     }
 
     @Override
+    public List<InventoryItem> getAllInStock() {
+        return repository.findAllInStock();
+    }
+
+    @Override
+    public List<InventoryItem> getAllInStockByGroup(Long groupId) {
+        return repository.findAllInStockByGroupId(groupId);
+    }
+
+    @Override
     public List<InventoryItem> getAll(Pageable pageable) {
         return repository.findAll();
     }

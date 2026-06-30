@@ -1,0 +1,14 @@
+@echo off
+setlocal
+
+:: ── Banner ───────────────────────────────────────────────────────────────────
+powershell -NoProfile -Command "Write-Host ''; Write-Host '  ____  ___ ____ _____ ___ __  __    _    ' -ForegroundColor Cyan; Write-Host ' / ___|_ _/ ___|_   _| __|  \/  |  / \   ' -ForegroundColor Cyan; Write-Host ' \___ \| |\___ \ | | | _|| |\/| | / _ \  ' -ForegroundColor Cyan; Write-Host '  ___) | | ___) || | | |__| |  | |/ ___ \ ' -ForegroundColor Cyan; Write-Host ' |____/___|____/ |_| |____|_|  |_/_/   \_\' -ForegroundColor Cyan; Write-Host ''; Write-Host '  ____  ___ ' -ForegroundColor Cyan; Write-Host ' |  _ \| __|' -ForegroundColor Cyan; Write-Host ' | |_) |  _|' -ForegroundColor Cyan; Write-Host ' |  _ <| |__' -ForegroundColor Cyan; Write-Host ' |_| \_\____|' -ForegroundColor Cyan; Write-Host ''; Write-Host '  ___ _  _ _   _ ___ _  _ _____ _   ___ ___ ___  ___ ' -ForegroundColor Cyan; Write-Host ' |_ _| \| \ \ / / __| \| |_   _/_\ | _ \_ _/ _ \/ __|' -ForegroundColor Cyan; Write-Host '  | || .`|\ V /| _|| .`| | |/ _ \|   /| | (_) \__ \' -ForegroundColor Cyan; Write-Host ' |___|_|\_| \_/ |___|_|\_||_|/_/ \_\_|_\___\___/|___/' -ForegroundColor Cyan; Write-Host ''; Write-Host ' :: Sistema de Inventarios ::' -ForegroundColor Green; Write-Host ''"
+
+:: ── Detección de IP WiFi ────────────────────────────────────────────────────
+for /f "usebackq tokens=*" %%a in (`powershell -NoProfile -Command "$ip = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.PrefixOrigin -eq 'Dhcp' -and $_.IPAddress -notmatch '^(127\.|169\.254\.|172\.(1[6-9]|2[0-9]|3[01])\.)' } | Sort-Object -Property { ($_.InterfaceAlias -match 'Wi.Fi|WLAN|Wireless') } -Descending | Select-Object -First 1).IPAddress; if ($ip) { $ip } else { '' }"`) do set HOST_IP=%%a
+
+:: ── Propiedades de despliegue ────────────────────────────────────────────────
+powershell -NoProfile -Command "$sep = ' ' + ('-' * 54); Write-Host ' Propiedades de despliegue (.env)' -ForegroundColor Yellow; Write-Host $sep -ForegroundColor DarkGray; if (Test-Path '.env') { Get-Content '.env' | Where-Object { $_ -match '^\s*[A-Z][A-Z0-9_]*=' } | ForEach-Object { $p = $_ -split '=', 2; $k = $p[0].Trim(); $v = if ($k -match 'PASSWORD|SECRET') { '*****' } else { $p[1].Trim() }; Write-Host ('  {0,-26} {1}' -f $k, $v) -ForegroundColor White } }; $hip = $env:HOST_IP; $hv = if ($hip) { $hip + '  (detectada)' } else { 'no detectada' }; $hc = if ($hip) { 'Green' } else { 'DarkGray' }; Write-Host ('  {0,-26} {1}' -f 'HOST_IP', $hv) -ForegroundColor $hc; Write-Host $sep -ForegroundColor DarkGray; Write-Host ''"
+
+:: ── Arranque ─────────────────────────────────────────────────────────────────
+docker compose %*

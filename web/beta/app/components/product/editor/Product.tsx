@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Product } from '@/app/model/Product';
 import { userProductStore } from '@/app/store/userProductStore';
+import { useCategoryStore } from '@/app/store/useCategoryStore';
 
 type Props = {
   initialData: Product;
@@ -40,12 +41,52 @@ export default function ProductEditor({ initialData, onSave, onCancel }: Props) 
   const [item, setItem] = useState<Product>(initialData);
   const [errors, setErrors] = useState<Errors>({});
   const [loading, setLoading] = useState(false);
+
   const saveProduct = userProductStore(state => state.saveProduct);
+  const { categories, fetchCategories, createCategory } = useCategoryStore();
+
+  // Inline nueva categoría
+  const [showNewCat, setShowNewCat] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+  const [creatingCat, setCreatingCat] = useState(false);
+
+  useEffect(() => { fetchCategories(); }, [fetchCategories]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setItem(prev => ({ ...prev, [name]: value }));
     setErrors(prev => ({ ...prev, [name]: '' }));
+  };
+
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    if (val === '__new__') {
+      setShowNewCat(true);
+      return;
+    }
+    if (val === '') {
+      setItem(prev => ({ ...prev, category: null }));
+      return;
+    }
+    const found = categories.find(c => String(c.id) === val);
+    setItem(prev => ({ ...prev, category: found ?? null }));
+  };
+
+  const handleCreateCategory = async () => {
+    if (!newCatName.trim()) return;
+    setCreatingCat(true);
+    const created = await createCategory(newCatName.trim());
+    setCreatingCat(false);
+    if (created) {
+      setItem(prev => ({ ...prev, category: created }));
+      setShowNewCat(false);
+      setNewCatName('');
+    }
+  };
+
+  const cancelNewCat = () => {
+    setShowNewCat(false);
+    setNewCatName('');
   };
 
   const validate = (): boolean => {
@@ -122,7 +163,92 @@ export default function ProductEditor({ initialData, onSave, onCancel }: Props) 
         />
       </div>
 
-      {/* Footer actions */}
+      {/* Categoría */}
+      <div>
+        <Label>
+          <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+          </svg>
+          Categoría
+          <span className="ml-1 text-xs text-slate-400 font-normal normal-case">(opcional)</span>
+        </Label>
+
+        {!showNewCat ? (
+          <div className="flex gap-2">
+            <select
+              value={item.category ? String(item.category.id) : ''}
+              onChange={handleCategoryChange}
+              className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-white hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 transition-all"
+            >
+              <option value="">Sin categoría</option>
+              {categories.map(c => (
+                <option key={c.id} value={String(c.id)}>{c.name}</option>
+              ))}
+              <option value="__new__">＋ Nueva categoría...</option>
+            </select>
+            {item.category && (
+              <button
+                type="button"
+                onClick={() => setItem(prev => ({ ...prev, category: null }))}
+                title="Quitar categoría"
+                className="shrink-0 px-3 py-2.5 border border-slate-200 rounded-xl text-slate-400 hover:text-red-500 hover:border-red-200 transition"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="flex gap-2 items-center">
+            <input
+              type="text"
+              value={newCatName}
+              onChange={e => setNewCatName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleCreateCategory(); if (e.key === 'Escape') cancelNewCat(); }}
+              placeholder="Nombre de la nueva categoría"
+              className="flex-1 px-4 py-2.5 border border-indigo-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 transition-all"
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={handleCreateCategory}
+              disabled={!newCatName.trim() || creatingCat}
+              className="shrink-0 flex items-center gap-1.5 px-3 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-semibold rounded-xl transition"
+            >
+              {creatingCat ? (
+                <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+              ) : (
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+              Crear
+            </button>
+            <button
+              type="button"
+              onClick={cancelNewCat}
+              className="shrink-0 px-3 py-2.5 border border-slate-200 rounded-xl text-slate-500 hover:bg-slate-50 text-xs font-medium transition"
+            >
+              Cancelar
+            </button>
+          </div>
+        )}
+
+        {item.category && !showNewCat && (
+          <p className="mt-1.5 text-xs text-indigo-600 flex items-center gap-1">
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            Categoría: <strong>{item.category.name}</strong>
+          </p>
+        )}
+      </div>
+
+      {/* Footer */}
       <div className="flex gap-3 pt-3 mt-1 border-t border-slate-100">
         {onCancel && (
           <button

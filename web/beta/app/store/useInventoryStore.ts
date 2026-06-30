@@ -18,7 +18,7 @@ type State = {
 
 const emptyItem: InventoryItem = {
   id: 0, quantity: 0, price: 0, netValue: 0, description: '',
-  product: { id: 0, name: '', brand: '', model: '' },
+  product: { id: 0, name: '', brand: '', model: '', category: null },
   arrivalDate: '', outDate: '', barcode: '',
 };
 

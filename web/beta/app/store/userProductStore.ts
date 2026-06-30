@@ -13,7 +13,7 @@ type State = {
   deleteProduct: (data: Product) => Promise<void>;
 };
 
-const emptyProduct: Product = { id: 0, name: '', brand: '', model: '' };
+const emptyProduct: Product = { id: 0, name: '', brand: '', model: '', category: null };
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export const userProductStore = create<State>((set, get) => ({
@@ -40,10 +40,11 @@ export const userProductStore = create<State>((set, get) => ({
 
   saveProduct: async (data: Product): Promise<boolean> => {
     try {
+      const payload = { ...data, categoryId: data.category?.id ?? null };
       await fetch(`${API_BASE_URL}/product/dto`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
       await get().fetchProduct();
       get().clearShowProduct();

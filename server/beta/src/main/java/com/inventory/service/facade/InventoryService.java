@@ -13,6 +13,8 @@ public interface InventoryService {
 
     List<InventoryItem> getAll();
     List<InventoryItem> getAll(Pageable pageable);
+    List<InventoryItem> getAllInStock();
+    List<InventoryItem> getAllInStockByGroup(Long groupId);
 
     List<InventoryItem> getdAllByYear(Date date);
 

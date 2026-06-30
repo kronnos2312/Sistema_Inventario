@@ -7,7 +7,7 @@ import ConfirmDialog from '../base/context/ConfirmDialog';
 import ProductEditor from './editor/Product';
 import { Product } from '@/app/model/Product';
 
-const emptyProduct: Product = { id: 0, name: '', model: '', brand: '' };
+const emptyProduct: Product = { id: 0, name: '', model: '', brand: '', category: null };
 
 export default function ProductTable() {
   const [open, setOpen] = useState(false);
@@ -20,7 +20,7 @@ export default function ProductTable() {
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [filters, setFilters] = useState({ name: '', model: '', brand: '' });
+  const [filters, setFilters] = useState({ name: '', model: '', brand: '', category: '' });
 
   useEffect(() => { fetchProduct(); }, [fetchProduct]);
   useEffect(() => { setCurrentPage(1); }, [search, filters, itemsPerPage]);
@@ -39,11 +39,13 @@ export default function ProductTable() {
     setFilters(prev => ({ ...prev, [field]: value }));
 
   const filtered = product.filter(item => {
-    const global = `${item.name} ${item.model} ${item.brand}`.toLowerCase().includes(search.toLowerCase());
+    const catName = item.category?.name ?? '';
+    const global = `${item.name} ${item.model} ${item.brand} ${catName}`.toLowerCase().includes(search.toLowerCase());
     const col =
       item.name.toLowerCase().includes(filters.name.toLowerCase()) &&
       item.model.toLowerCase().includes(filters.model.toLowerCase()) &&
-      item.brand.toLowerCase().includes(filters.brand.toLowerCase());
+      item.brand.toLowerCase().includes(filters.brand.toLowerCase()) &&
+      catName.toLowerCase().includes(filters.category.toLowerCase());
     return global && col;
   });
 
@@ -178,11 +180,20 @@ export default function ProductTable() {
                   </button>
                 </div>
               </div>
-              {/* Modelo */}
-              {item.model && (
-                <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-slate-100">
-                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Modelo</span>
-                  <span className="text-xs text-slate-600">{item.model}</span>
+              {/* Modelo + Categoría */}
+              {(item.model || item.category) && (
+                <div className="flex items-center gap-3 mt-2 pt-2 border-t border-slate-100 flex-wrap">
+                  {item.model && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Modelo</span>
+                      <span className="text-xs text-slate-600">{item.model}</span>
+                    </div>
+                  )}
+                  {item.category && (
+                    <span className="text-[10px] bg-indigo-100 text-indigo-700 font-semibold px-1.5 py-0.5 rounded">
+                      {item.category.name}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -199,14 +210,15 @@ export default function ProductTable() {
               <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Nombre</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Modelo</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Marca</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Categoría</th>
               <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Acciones</th>
             </tr>
             <tr className="bg-slate-50 border-t border-slate-200">
               <th />
-              {(['name', 'model', 'brand'] as const).map(f => (
+              {(['name', 'model', 'brand', 'category'] as const).map(f => (
                 <th key={f} className="px-4 py-2">
                   <input
-                    placeholder={`Filtrar ${f === 'name' ? 'nombre' : f === 'model' ? 'modelo' : 'marca'}...`}
+                    placeholder={`Filtrar ${f === 'name' ? 'nombre' : f === 'model' ? 'modelo' : f === 'brand' ? 'marca' : 'categoría'}...`}
                     value={filters[f]}
                     onChange={e => handleFilterChange(f, e.target.value)}
                     className="w-full px-2 py-1 text-xs border border-slate-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-400"
@@ -223,6 +235,15 @@ export default function ProductTable() {
                 <td className="px-4 py-3 text-slate-800 font-medium">{item.name}</td>
                 <td className="px-4 py-3 text-slate-600">{item.model}</td>
                 <td className="px-4 py-3 text-slate-600">{item.brand}</td>
+                <td className="px-4 py-3">
+                  {item.category ? (
+                    <span className="text-xs bg-indigo-100 text-indigo-700 font-semibold px-2 py-0.5 rounded-full">
+                      {item.category.name}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-slate-300">—</span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex items-center justify-end gap-1.5">
                     <button
@@ -238,7 +259,7 @@ export default function ProductTable() {
               </tr>
             )) : (
               <tr>
-                <td colSpan={5} className="py-14 text-center text-slate-400 text-sm">No se encontraron productos</td>
+                <td colSpan={6} className="py-14 text-center text-slate-400 text-sm">No se encontraron productos</td>
               </tr>
             )}
           </tbody>

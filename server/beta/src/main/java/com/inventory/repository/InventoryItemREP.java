@@ -17,4 +17,10 @@ public interface InventoryItemREP extends JpaRepository<InventoryItem, Long> {
     @Query("from InventoryItem ii where ii.barcode = :barcode")
     Optional<InventoryItem> findByBarCode(@Param("barcode") String barcode);
 
+    @Query("from InventoryItem ii where ii.outDate is null")
+    List<InventoryItem> findAllInStock();
+
+    @Query("select ii from InventoryItem ii join ii.product p join p.category c join c.groups g where ii.outDate is null and g.id = :groupId")
+    List<InventoryItem> findAllInStockByGroupId(@Param("groupId") Long groupId);
+
 }

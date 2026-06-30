@@ -14,7 +14,6 @@ import java.util.Date;
 import java.util.List;
 
 @RestController
-@CrossOrigin(origins = "http:/localhost:3000")
 @RequestMapping("/inventory")
 public class InventoryController {
 
@@ -67,6 +66,16 @@ public class InventoryController {
     public ResponseEntity<List<InventoryItem>> getAll() {
         List<InventoryItem> elements = service.getAll();
         return ResponseEntity.ok(elements);
+    }
+
+    @GetMapping("/stock")
+    public ResponseEntity<List<InventoryItem>> getStock() {
+        return ResponseEntity.ok(service.getAllInStock());
+    }
+
+    @GetMapping("/stock/group/{groupId}")
+    public ResponseEntity<List<InventoryItem>> getStockByGroup(@PathVariable Long groupId) {
+        return ResponseEntity.ok(service.getAllInStockByGroup(groupId));
     }
 
     @DeleteMapping("/inventory/id/{id}")

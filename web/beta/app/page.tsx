@@ -18,7 +18,8 @@ export default function Home() {
   }, [activeTab]);
 
   const getTitle = (tab: Tab) => {
-    const app = process.env.NEXT_PUBLIC_SITE_TITLE || 'Sistema';
+    const w = window as typeof window & { __SITE_TITLE__?: string };
+    const app = w.__SITE_TITLE__ || process.env.NEXT_PUBLIC_SITE_TITLE || 'Sistema';
     const labels: Record<Tab, string> = {
       bienvenida: 'Bienvenido',
       productos: 'Productos',

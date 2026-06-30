@@ -1,4 +1,4 @@
-# Sistema de Inventario — TuZonaPCGamer
+# Sistema de Inventario — Pruebas
 
 Plataforma web para la gestión integral de inventario, productos y movimientos de stock. Arquitectura cliente-servidor: API REST en Java (Spring Boot) y frontend reactivo en Next.js.
 
@@ -226,7 +226,7 @@ Accede en: **http://localhost:3000**
 ```env
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 NEXT_PUBLIC_SITE_TITLE=Sistema de Inventario
-NEXT_PUBLIC_SITE_CLIENT=TuZonaPCGamer
+NEXT_PUBLIC_SITE_CLIENT=Pruebas
 NEXT_PUBLIC_LOGO=/img/logo.png
 ```
 
@@ -291,7 +291,7 @@ Sistema_Inventario/
 │   ├── Dockerfile
 │   ├── pom.xml
 │   └── src/main/
-│       ├── java/com/tuzonapcgamer/
+│       ├── java/com/pruebas/
 │       │   ├── controller/     # ProductController, InventoryController
 │       │   ├── model/          # Product, InventoryItem
 │       │   ├── dto/            # ProductDTO, InventoryDTO, WInventory
@@ -333,4 +333,4 @@ Sistema_Inventario/
 
 ## Licencia
 
-Uso interno — TuZonaPCGamer. Todos los derechos reservados.
+Uso interno — pruebas. Todos los derechos reservados.
