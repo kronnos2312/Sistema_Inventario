@@ -1,0 +1,11 @@
+# Override que expone PostgreSQL en el host — usar SOLO en dev/testing, para
+# conectarte con un cliente de BD local (DBeaver, psql, etc.):
+#
+#   docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.expose-db.yml up
+#
+# En prod NO se incluye este archivo: la base de datos queda accesible
+# únicamente desde el backend, dentro de la red interna de Docker.
+services:
+  db:
+    ports:
+      - "${DB_HOST_PORT:-5432}:5432"

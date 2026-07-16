@@ -9,3 +9,6 @@ envs/.env.prod
 
 # Datos de PostgreSQL — generados en runtime, no se versionan
 data/
+
+# APK compilado por el servicio Docker "android" — artefacto generado, no se versiona
+/apk/*.apk

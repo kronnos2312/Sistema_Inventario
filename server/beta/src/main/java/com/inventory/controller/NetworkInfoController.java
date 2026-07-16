@@ -34,12 +34,14 @@ public class NetworkInfoController {
         }
 
         // Prioridad 2: Detección automática por interfaces de red (dev local sin Docker)
+        // Solo se consideran interfaces WiFi: la IP de Ethernet no sirve para el
+        // acceso desde dispositivos móviles en la misma red inalámbrica.
         if (entries.isEmpty()) {
             try {
                 Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
                 if (interfaces != null) {
                     for (NetworkInterface ni : Collections.list(interfaces)) {
-                        if (ni.isLoopback() || !ni.isUp()) continue;
+                        if (ni.isLoopback() || !ni.isUp() || !isWifiInterface(ni.getDisplayName())) continue;
                         for (InetAddress addr : Collections.list(ni.getInetAddresses())) {
                             if (!(addr instanceof Inet4Address) || addr.isLoopbackAddress()) continue;
                             String ip = addr.getHostAddress();
@@ -63,6 +65,11 @@ public class NetworkInfoController {
         result.put("osVersion", System.getProperty("os.version", ""));
 
         return ResponseEntity.ok(result);
+    }
+
+    private static boolean isWifiInterface(String displayName) {
+        if (displayName == null) return false;
+        return displayName.toLowerCase().matches(".*(wi-?fi|wlan|wireless).*");
     }
 
     private static boolean isDockerIp(String ip) {

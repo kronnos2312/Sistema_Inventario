@@ -73,16 +73,22 @@ services:
       db:
         condition: service_healthy
     environment:
+      # dev | testing | prod — activa server/beta/src/main/resources/application-{perfil}.properties
+      SPRING_PROFILES_ACTIVE:                         ${SPRING_PROFILE:-dev}
       SPRING_DATASOURCE_URL:                          jdbc:postgresql://db:5432/${DB_NAME:-inventory}
       SPRING_DATASOURCE_USERNAME:                     ${DB_USER:-myuser}
       SPRING_DATASOURCE_PASSWORD:                     ${DB_PASSWORD:-mypassword}
-      SPRING_JPA_HIBERNATE_DDL_AUTO:                  ${DDL_AUTO:-update}
       SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: ${DB_SCHEMA:-sysinventarios}
       FILES_DIR: /app/files
       # IP WiFi del host — detectada automáticamente por start.bat / start.sh
       HOST_IP: ${HOST_IP:-}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-prod-please-32-bytes-min}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
+      ADMIN_DEFAULT_PASSWORD: ${ADMIN_DEFAULT_PASSWORD:-admin123}
+      APK_DIR: /app/apk
     volumes:
       - ${FILES_DIR:-./data/files}:/app/files
+      - ./apk:/app/apk:ro
     networks:
       - app-net
 
@@ -92,22 +98,42 @@ services:
       context: ./web/beta
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_BASE_URL:  /api-proxy
-        NEXT_PUBLIC_SITE_TITLE:    ${NEXT_PUBLIC_SITE_TITLE:-Sistema Inventario}
-        NEXT_PUBLIC_SITE_CLIENT:   ${NEXT_PUBLIC_SITE_CLIENT:-TuZona PC Gamer}
-        INTERNAL_API_URL:          http://backend:8080
-        NEXT_PUBLIC_FRONTEND_PORT: ${FRONTEND_PORT:-3000}
-        NEXT_PUBLIC_BACKEND_PORT:  ${BACKEND_PORT:-8080}
+        # Fijo a /api-proxy a propósito: el navegador siempre llama al backend a
+        # través del rewrite de Next.js (ver next.config.ts), nunca directo — así
+        # el acceso por LAN funciona sin importar desde qué IP se abra la app.
+        NEXT_PUBLIC_API_BASE_URL:      /api-proxy
+        NEXT_PUBLIC_SITE_TITLE:        ${NEXT_PUBLIC_SITE_TITLE:-Sistema Inventario}
+        NEXT_PUBLIC_SITE_CLIENT:       ${NEXT_PUBLIC_SITE_CLIENT:-TuZona PC Gamer}
+        NEXT_PUBLIC_SITE_DESCRIPTION:  ${NEXT_PUBLIC_SITE_DESCRIPTION:-}
+        INTERNAL_API_URL:              http://backend:8080
+        NEXT_PUBLIC_FRONTEND_PORT:     ${FRONTEND_PORT:-3000}
+        NEXT_PUBLIC_BACKEND_PORT:      ${BACKEND_PORT:-8080}
     restart: always
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     depends_on:
       - backend
     environment:
-      INTERNAL_API_URL:        http://backend:8080
-      HOST_PORT:               ${FRONTEND_PORT:-3000}
-      HOST_PORT_BACKEND:       ${BACKEND_PORT:-8080}
-      NEXT_PUBLIC_SITE_TITLE:  ${NEXT_PUBLIC_SITE_TITLE:-Sistema Inventario}
-      NEXT_PUBLIC_SITE_CLIENT: ${NEXT_PUBLIC_SITE_CLIENT:-TuZona PC Gamer}
+      INTERNAL_API_URL:             http://backend:8080
+      HOST_PORT:                    ${FRONTEND_PORT:-3000}
+      HOST_PORT_BACKEND:            ${BACKEND_PORT:-8080}
+      NEXT_PUBLIC_SITE_TITLE:       ${NEXT_PUBLIC_SITE_TITLE:-Sistema Inventario}
+      NEXT_PUBLIC_SITE_CLIENT:      ${NEXT_PUBLIC_SITE_CLIENT:-TuZona PC Gamer}
+      NEXT_PUBLIC_SITE_DESCRIPTION: ${NEXT_PUBLIC_SITE_DESCRIPTION:-}
     networks:
       - app-net
+
+  # ── ANDROID (build APK debug) ────────────────────────────────────────────────
+  # Se construye en cada "docker compose up" junto con backend/frontend. El primer
+  # build descarga el Android SDK (~1GB) y tarda varios minutos; los siguientes
+  # reutilizan la caché de capas de Docker y son más rápidos si no cambió el código.
+  android:
+    build:
+      context: ./android
+      dockerfile: Dockerfile
+      args:
+        BACKEND_DEFAULT_HOST: ${HOST_IP:-localhost}
+        BACKEND_DEFAULT_PORT: ${BACKEND_PORT:-8080}
+    restart: "no"
+    volumes:
+      - ./apk:/output

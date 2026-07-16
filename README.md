@@ -10,6 +10,7 @@ Plataforma web para la gestión integral de inventario, productos y movimientos 
 - [Arquitectura](#arquitectura)
 - [Módulos del sistema](#módulos-del-sistema)
 - [Despliegue con Docker](#despliegue-con-docker)
+- [Perfiles de entorno (dev / testing / prod)](#perfiles-de-entorno-dev--testing--prod)
 - [Despliegue local sin Docker](#despliegue-local-sin-docker)
 - [Variables de entorno](#variables-de-entorno)
 - [Referencia de la API](#referencia-de-la-api)
@@ -89,9 +90,13 @@ cp .env.example .env
 
 Edita `.env` con los valores de tu entorno. Para uso local los valores por defecto funcionan sin cambios.
 
-> **`NEXT_PUBLIC_API_BASE_URL`** es la URL que el **navegador del usuario** usa para llamar al backend.
-> En local: `http://localhost:8080`. En servidor remoto: `http://<ip-o-dominio>:8080`.
-> Next.js la incrusta en el bundle al compilar — cambia este valor **antes** de construir la imagen.
+> **`NEXT_PUBLIC_API_BASE_URL`** no se configura en `.env`: en el flujo Docker el
+> navegador siempre llama al backend a través de `/api-proxy` (rewrite de Next.js
+> definido en `next.config.ts`, ver `docker-compose.yml`), nunca de forma directa —
+> así el acceso por LAN funciona sin importar desde qué IP se abra la app (ver QR
+> de acceso en Configuración → Red local). Esta variable solo aplica al ejecutar
+> el frontend **sin Docker** (`yarn dev`/`yarn build`) — ver
+> [Despliegue local sin Docker](#despliegue-local-sin-docker).
 
 ### 2. Levantar el stack completo
 
@@ -151,7 +156,52 @@ docker compose build --no-cache && docker compose up
 |---|---|---|
 | Frontend (Next.js) | `3000` | `FRONTEND_PORT` |
 | Backend (Spring Boot) | `8080` | `BACKEND_PORT` |
-| Base de datos (PostgreSQL) | `5432` | `DB_HOST_PORT` |
+| Base de datos (PostgreSQL) | `5432` (solo dev/testing) | `DB_HOST_PORT` |
+
+---
+
+## Perfiles de entorno (dev / testing / prod)
+
+El backend activa un perfil de Spring (`SPRING_PROFILES_ACTIVE`) que carga
+`server/beta/src/main/resources/application-{perfil}.properties` encima de la
+configuración base. Cada perfil tiene su propio archivo `.env.{perfil}` en la
+raíz del proyecto con valores ya preparados:
+
+| Perfil | `.env.*` | `ddl-auto` | Puerto de BD expuesto al host |
+|---|---|---|---|
+| **dev** | `.env.dev` | `update` (ajusta el esquema sin borrar datos) | Sí, opcional |
+| **testing** | `.env.testing` | `create-drop` (esquema limpio en cada corrida) | Sí, opcional |
+| **prod** | `.env.prod` | `validate` (nunca modifica el esquema) | No |
+
+> ⚠️ `.env.testing` apunta **a propósito** a la misma base de datos que `.env.dev`.
+> Como usa `create-drop`, cada arranque/parada de `testing` borra los datos de
+> desarrollo. Si necesitas conservarlos, no uses el perfil testing sobre esa BD.
+
+El proyecto no usa Flyway ni Liquibase: en `prod`, cualquier cambio de esquema
+debe aplicarse manualmente o migrando temporalmente a `ddl-auto=update`.
+
+### Levantar cada perfil
+
+```bash
+# Dev — con la base de datos expuesta en localhost:5432 para conectar un cliente (DBeaver, psql...)
+docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.expose-db.yml up --build
+
+# Testing — igual que dev, pero con esquema recreado en cada corrida (ver advertencia arriba)
+docker compose --env-file .env.testing -f docker-compose.yml -f docker-compose.expose-db.yml up --build
+
+# Prod — la base de datos NO se expone al host
+docker compose --env-file .env.prod up --build
+```
+
+`docker-compose.expose-db.yml` es un override que solo agrega el mapeo de
+puerto de PostgreSQL; nunca se incluye en el comando de `prod`, así que la
+base de datos de producción queda accesible únicamente desde el backend,
+dentro de la red interna de Docker.
+
+Antes de desplegar `prod`, reemplaza todos los valores `CHANGE_ME` de
+`.env.prod` (usuario/contraseña de BD, `JWT_SECRET`, `ADMIN_DEFAULT_PASSWORD`,
+URL pública). No subas ese archivo a git con secretos reales — cópialo a
+`./.env` (ya ignorado por git) y completa ahí los valores reales.
 
 ---
 
@@ -189,7 +239,7 @@ curl http://localhost:8080/product
 cd web/beta
 
 # Crear archivo de entorno
-cp .env.local.example .env.local   # o crear manualmente
+cp .env.local.example .env.local
 
 # Instalar dependencias
 yarn install
@@ -198,7 +248,7 @@ yarn install
 yarn dev
 ```
 
-Accede en: **http://localhost:3000**
+Accede en: **http://localhost:3000**. Variables de `web/beta/.env.local` — ver la sección **Frontend local** más abajo.
 
 ---
 
@@ -212,23 +262,33 @@ Accede en: **http://localhost:3000**
 | `DB_USER` | Usuario de PostgreSQL | `myuser` |
 | `DB_PASSWORD` | Contraseña del usuario | `mypassword` |
 | `DB_SCHEMA` | Schema donde Hibernate crea las tablas | `sysinventarios` |
-| `DDL_AUTO` | Estrategia DDL de Hibernate | `update` |
-| `DB_HOST_PORT` | Puerto del host para PostgreSQL | `5432` |
+| `SPRING_PROFILE` | Perfil activo del backend (`dev`\|`testing`\|`prod`) — controla `ddl-auto`, ver [Perfiles de entorno](#perfiles-de-entorno-dev--testing--prod) | `dev` |
+| `DB_HOST_PORT` | Puerto del host para PostgreSQL (solo con `docker-compose.expose-db.yml`) | `5432` |
 | `BACKEND_PORT` | Puerto del host para Spring Boot | `8080` |
 | `FRONTEND_PORT` | Puerto del host para Next.js | `3000` |
-| `NEXT_PUBLIC_API_BASE_URL` | URL del backend accesible desde el navegador | `http://localhost:8080` |
-| `NEXT_PUBLIC_SITE_TITLE` | Título de la aplicación | `Sistema Inventario` |
+| `NEXT_PUBLIC_SITE_TITLE` | Título de la aplicación (metadatos + header) | `Sistema Inventario` |
 | `NEXT_PUBLIC_SITE_CLIENT` | Nombre del cliente en el header | `TuZona PC Gamer` |
-| `NEXT_PUBLIC_LOGO` | Ruta pública del logotipo | `/img/logo.png` |
+| `NEXT_PUBLIC_SITE_DESCRIPTION` | Descripción usada en metadatos de la página | *(vacío)* |
+| `JWT_SECRET` | Secreto para firmar los JWT de la app Android | `change-me-in-prod-please-32-bytes-min` |
+| `JWT_EXPIRATION_MS` | Expiración del JWT en milisegundos | `86400000` |
+| `ADMIN_DEFAULT_PASSWORD` | Contraseña del usuario `admin` sembrado al primer arranque | `admin123` |
+
+> `NEXT_PUBLIC_API_BASE_URL` y `NEXT_PUBLIC_LOGO` **no** se configuran aquí — en
+> el flujo Docker el navegador siempre usa `/api-proxy` (ver nota más arriba) y
+> el logo se sirve dinámicamente desde el backend (Configuración → Logo). Ambas
+> solo aplican al frontend sin Docker, ver la tabla siguiente.
 
 ### Frontend local — `web/beta/.env.local`
 
-```env
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
-NEXT_PUBLIC_SITE_TITLE=Sistema de Inventario
-NEXT_PUBLIC_SITE_CLIENT=Pruebas
-NEXT_PUBLIC_LOGO=/img/logo.png
-```
+Copia `web/beta/.env.local.example` a `web/beta/.env.local` (ver [Despliegue local sin Docker](#despliegue-local-sin-docker)). Solo tiene efecto al correr `yarn dev`/`yarn build` fuera de Docker.
+
+| Variable | Descripción | Valor por defecto |
+|---|---|---|
+| `NEXT_PUBLIC_API_BASE_URL` | URL del backend accesible desde el navegador | `http://localhost:8080` |
+| `NEXT_PUBLIC_SITE_TITLE` | Título de la aplicación | `Sistema Inventario` |
+| `NEXT_PUBLIC_SITE_CLIENT` | Nombre del cliente en el header | `TuZona PC Gamer` |
+| `NEXT_PUBLIC_SITE_DESCRIPTION` | Descripción usada en metadatos | *(vacío)* |
+| `NEXT_PUBLIC_LOGO` | Ruta del logo por defecto si el backend no tiene uno configurado | `/logo/logo.png` |
 
 ---
 
@@ -324,7 +384,8 @@ Sistema_Inventario/
 |---|---|---|
 | `Connection refused` al arrancar el backend | DB no está lista | El healthcheck de Docker lo resuelve automáticamente; espera unos segundos |
 | `schema "sysinventarios" does not exist` | Schema no creado | El `init-db.sh` lo crea al primer arranque del contenedor `db` |
-| El frontend no conecta al backend | `NEXT_PUBLIC_API_BASE_URL` incorrecto | Verifica el valor en `.env` y reconstruye con `docker compose build --no-cache` |
+| El frontend no conecta al backend | `INTERNAL_API_URL`/proxy mal configurado, o el backend no está sano | Revisa `docker compose logs backend` y que `depends_on: db` esté saludable; reconstruye con `docker compose build --no-cache` |
+| El frontend local (`yarn dev`) no conecta al backend | `NEXT_PUBLIC_API_BASE_URL` incorrecto en `web/beta/.env.local` | Verifica el valor y reinicia `yarn dev` (se re-lee en cada arranque) |
 | Error de CORS | Origen del frontend no permitido | Revisa `CorsConfig.java` |
 | Puerto ocupado | Otro proceso usa el 3000 u 8080 | Cambia `FRONTEND_PORT` o `BACKEND_PORT` en `.env` |
 | Código de barras duplicado | Artículo ya registrado | Usa un código diferente o edita el registro existente |

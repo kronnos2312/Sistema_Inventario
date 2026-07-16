@@ -6,6 +6,7 @@ import Modal from '../base/context/Modal';
 import { useDeviceConfig } from '@/app/hooks/useDeviceConfig';
 import { useInventoryStore } from '@/app/store/useInventoryStore';
 import { useProductGroupStore } from '@/app/store/useProductGroupStore';
+import UsersPanel from './UsersPanel';
 
 const EXPORT_URL_KEY = 'inventory_export_url';
 
@@ -63,7 +64,7 @@ async function detectLocalIpWebRTC(): Promise<string | null> {
 
 type CamNative = 'idle' | 'prompt' | 'granted' | 'denied' | 'unavailable';
 
-type TabId = 'network' | 'webhook' | 'logo' | 'camera' | 'export';
+type TabId = 'network' | 'webhook' | 'logo' | 'camera' | 'export' | 'users';
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   {
@@ -117,6 +118,16 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
       </svg>
     ),
   },
+  {
+    id: 'users',
+    label: 'Usuarios',
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6-4a4 4 0 11-8 0 4 4 0 018 0z" />
+      </svg>
+    ),
+  },
 ];
 
 export default function ConfigPage() {
@@ -129,6 +140,15 @@ export default function ConfigPage() {
   const [qrUrl, setQrUrl] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [copiedIp, setCopiedIp] = useState<string | null>(null);
+
+  // ── App Android (descarga APK) ─────────────────────────────────────────────
+  const [apkAvailable, setApkAvailable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/apk/download`, { method: 'HEAD' })
+      .then(res => setApkAvailable(res.ok))
+      .catch(() => setApkAvailable(false));
+  }, []);
 
   // ── Cámara ───────────────────────────────────────────────────────────────
   const { status: deviceCamStatus, saveCameraPermission } = useDeviceConfig();
@@ -321,10 +341,12 @@ export default function ConfigPage() {
 
     Promise.all([fetchInfo, detectWebRTC]).then(([data, webrtcIp]) => {
       if (!clientIsIp) {
-        if (webrtcIp) {
-          setWifiIp(webrtcIp);
-        } else if (data && data.entries.length > 0) {
+        // El backend ya filtra por interfaz WiFi; WebRTC no distingue WiFi de
+        // Ethernet, así que solo se usa como respaldo si el backend no reportó nada.
+        if (data && data.entries.length > 0) {
           setWifiIp(data.entries[0].ip);
+        } else if (webrtcIp) {
+          setWifiIp(webrtcIp);
         }
       }
       setLoading(false);
@@ -387,6 +409,7 @@ export default function ConfigPage() {
 
           {/* ── Tab: Red local ─────────────────────────────────────────── */}
           {activeTab === 'network' && (
+            <div className="space-y-4">
             <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5 space-y-4">
               <div className="flex items-center gap-2">
                 <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -503,6 +526,55 @@ export default function ConfigPage() {
                   )}
                 </>
               )}
+            </div>
+
+            {/* App Android — descarga del APK */}
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5 space-y-3">
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                <h3 className="font-medium text-slate-700">App Android</h3>
+              </div>
+
+              <p className="text-sm text-slate-500">
+                Descarga el instalador (APK) para usar el sistema de inventario desde un dispositivo Android.
+              </p>
+
+              {apkAvailable === null && (
+                <p className="text-sm text-slate-400">Comprobando disponibilidad...</p>
+              )}
+
+              {apkAvailable === true && (
+                <a
+                  href={`${API_BASE_URL}/apk/download`}
+                  download
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-sm font-semibold rounded-xl transition"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-8-2V4m0 12l-4-4m4 4l4-4" />
+                  </svg>
+                  Descargar APK
+                </a>
+              )}
+
+              {apkAvailable === false && (
+                <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                  <svg className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                  </svg>
+                  <div>
+                    <p className="text-sm font-semibold text-amber-800">APK aún no generado</p>
+                    <p className="text-xs text-amber-700 mt-0.5">
+                      Ejecuta <code className="font-mono bg-amber-100 px-1 rounded">docker compose --profile android up --build android</code> en el servidor para generarlo.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
             </div>
           )}
 
@@ -991,6 +1063,9 @@ export default function ConfigPage() {
               </div>
             </div>
           )}
+
+          {/* ── Tab: Usuarios ──────────────────────────────────────────── */}
+          {activeTab === 'users' && <UsersPanel />}
 
         </div>
       </div>
