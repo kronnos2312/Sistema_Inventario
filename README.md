@@ -82,13 +82,19 @@ docker --version
 docker compose version
 ```
 
-### 1. Crear el archivo de variables de entorno
+### 1. Variables de entorno
+
+No hace falta crear nada a mano: `start.bat` (Windows) / `start.sh` (Linux/macOS) crean
+`.env` automáticamente a partir de `.env.example` (empaquetado en el repo con valores por
+defecto) la primera vez que se ejecutan, y de paso detectan la IP WiFi del host para que
+la app Android la use por defecto. Si prefieres personalizar algo (contraseñas, puertos,
+etc.), edita `.env` después de la primera corrida, o créalo tú mismo antes:
 
 ```bash
 cp .env.example .env
 ```
 
-Edita `.env` con los valores de tu entorno. Para uso local los valores por defecto funcionan sin cambios.
+Para uso local los valores por defecto funcionan sin cambios.
 
 > **`NEXT_PUBLIC_API_BASE_URL`** no se configura en `.env`: en el flujo Docker el
 > navegador siempre llama al backend a través de `/api-proxy` (rewrite de Next.js
@@ -101,16 +107,23 @@ Edita `.env` con los valores de tu entorno. Para uso local los valores por defec
 ### 2. Levantar el stack completo
 
 ```bash
-docker compose up --build
+start.bat up --build      # Windows
+./start.sh up --build     # Linux / macOS
 ```
 
-Este único comando construye y arranca los tres servicios en orden:
+`start.bat`/`start.sh` crean `.env` si falta (ver paso 1), detectan la IP WiFi del host
+para `HOST_IP` y luego llaman a `docker compose` pasándole los argumentos tal cual —
+son un envoltorio, no un comando distinto. Si ya tienes `.env` armado a mano y no
+necesitas la detección de IP, `docker compose up --build` funciona igual de bien.
+
+Este único comando construye y arranca los servicios en orden:
 
 ```
 db  →  backend  →  frontend
+        └────────→  android  (compila el APK, no es un servidor)
 ```
 
-La primera vez descarga dependencias de Maven y compila los assets de Next.js (3–5 min). Las siguientes ejecuciones usan caché de Docker y son más rápidas.
+La primera vez descarga dependencias de Maven, compila los assets de Next.js y compila el APK de Android (3–10 min según tu conexión — el APK en particular descarga el Android SDK completo la primera vez). Las siguientes ejecuciones usan caché de Docker y son mucho más rápidas.
 
 ### 3. Acceso a la aplicación
 
@@ -125,6 +138,31 @@ frontend  | ✓ Ready in XXXms
 | **Frontend** | **http://localhost:3000** |
 | **API REST** | http://localhost:8080/product |
 | **Base de datos** | localhost:5432 |
+
+### 4. App Android (APK)
+
+El servicio `android` de `docker-compose.yml` compila el APK **completo dentro de Docker**
+(JDK, Android SDK y Gradle quedan dentro del contenedor) — **no necesitas instalar Java,
+Gradle ni Android Studio** en tu máquina para generarlo, ni para reconstruirlo tras un
+cambio de código.
+
+Al terminar `docker compose up --build`, el instalable queda en:
+
+```
+./apk/sistema-inventario.apk
+```
+
+Cópialo al celular (o compártelo por el servidor de archivos que prefieras) e instálalo
+habilitando "Orígenes desconocidos". La app se conecta automáticamente al backend usando
+la IP detectada por `start.bat`/`start.sh` (`HOST_IP` en `.env`); si cambia la IP del
+servidor, usa el código QR de "Backend API" en la web (Configuración → Red local) para
+reconfigurarla sin reinstalar.
+
+Para recompilar solo el APK después de tocar código Android:
+
+```bash
+docker compose up --build android
+```
 
 ### Otros comandos
 

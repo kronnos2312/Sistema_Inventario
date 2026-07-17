@@ -6,6 +6,7 @@ import com.inventory.model.InventoryItem;
 import com.inventory.model.Product;
 import com.inventory.service.facade.InventoryService;
 import com.inventory.service.facade.ProductService;
+import com.inventory.websocket.UpdateBroadcastHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,30 +20,44 @@ public class InventoryController {
 
     @Autowired private InventoryService service;
     @Autowired private ProductService productService;
+    @Autowired private UpdateBroadcastHandler updates;
+
     @PostMapping
     public ResponseEntity<InventoryItem> add(@RequestBody InventoryItem object) {
         if(object.getId() != null)
             return ResponseEntity.badRequest().build();
-        return ResponseEntity.ok(this.service.save(object));
+        InventoryItem saved = this.service.save(object);
+        updates.broadcast(UpdateBroadcastHandler.INVENTORY);
+        return ResponseEntity.ok(saved);
     }
 
     @PutMapping
     public ResponseEntity<InventoryItem> save(@RequestBody InventoryItem object) {
         if(object.getId() == null)
             return ResponseEntity.badRequest().build();
-        return ResponseEntity.ok(this.service.save(object));
+        InventoryItem saved = this.service.save(object);
+        updates.broadcast(UpdateBroadcastHandler.INVENTORY);
+        return ResponseEntity.ok(saved);
     }
     @PostMapping("/out")
     public ResponseEntity<WInventory> saveDTO(@RequestBody WInventory object) {
-        return ResponseEntity.ok(this.service.SaveOUT(object));
+        WInventory result = this.service.SaveOUT(object);
+        if (!"error".equals(result.getCodeName())) updates.broadcast(UpdateBroadcastHandler.INVENTORY);
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/dto")
     public ResponseEntity<InventoryDTO> saveDTO(@RequestBody InventoryDTO object) {
+        boolean newProduct = object.getProduct() != null && object.getProduct().getId() == 0;
         Product keep = productService.validateOrSave(object.getProduct());
         InventoryItem casted = object.cast();
         casted.setProduct(keep);
-       return ResponseEntity.ok(this.service.saveWithBarcodeValidation(casted, object));
+        InventoryDTO result = this.service.saveWithBarcodeValidation(casted, object);
+        if (!"error".equals(result.getCodeName())) {
+            updates.broadcast(UpdateBroadcastHandler.INVENTORY);
+            if (newProduct) updates.broadcast(UpdateBroadcastHandler.PRODUCT);
+        }
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/inventory/id/{id}")
@@ -81,6 +96,7 @@ public class InventoryController {
     @DeleteMapping("/inventory/id/{id}")
     public ResponseEntity<InventoryItem> deleteById(@PathVariable Long id) {
         this.service.deleteById(id);
+        updates.broadcast(UpdateBroadcastHandler.INVENTORY);
         return ResponseEntity.noContent().build();
     }
 

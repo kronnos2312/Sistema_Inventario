@@ -9,10 +9,12 @@ import com.inventory.android.data.local.entity.InventoryItemEntity
 import com.inventory.android.data.local.entity.ProductEntity
 import com.inventory.android.data.local.entity.imageCodes
 import com.inventory.android.di.AppContainer
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -21,11 +23,28 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import java.io.File
 import java.io.FileOutputStream
 
+enum class InventoryFilter { ALL, IN_STOCK, WITHDRAWN }
+
+@OptIn(ExperimentalCoroutinesApi::class)
 class InventoryListViewModel : ViewModel() {
     private val repository = AppContainer.instance.inventoryRepository
 
-    val items: StateFlow<List<InventoryItemEntity>> = repository.observeInStock()
+    private val _filter = MutableStateFlow(InventoryFilter.ALL)
+    val filter: StateFlow<InventoryFilter> = _filter.asStateFlow()
+
+    val items: StateFlow<List<InventoryItemEntity>> = _filter
+        .flatMapLatest { filter ->
+            when (filter) {
+                InventoryFilter.ALL -> repository.observeAll()
+                InventoryFilter.IN_STOCK -> repository.observeInStock()
+                InventoryFilter.WITHDRAWN -> repository.observeWithdrawn()
+            }
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun setFilter(filter: InventoryFilter) {
+        _filter.value = filter
+    }
 
     fun delete(localId: Long) {
         viewModelScope.launch { repository.delete(localId) }

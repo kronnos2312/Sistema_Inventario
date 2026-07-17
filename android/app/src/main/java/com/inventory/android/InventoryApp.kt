@@ -3,6 +3,7 @@ package com.inventory.android
 import android.app.Application
 import com.inventory.android.auth.SessionState
 import com.inventory.android.di.AppContainer
+import com.inventory.android.sync.NetworkSyncMonitor
 import com.inventory.android.sync.SyncScheduler
 
 class InventoryApp : Application() {
@@ -16,5 +17,7 @@ class InventoryApp : Application() {
             // vez de esperar el próximo ciclo periódico (hasta 15 min) o el botón manual.
             SyncScheduler.triggerManualSync(this)
         }
+
+        NetworkSyncMonitor.register(this)
     }
 }

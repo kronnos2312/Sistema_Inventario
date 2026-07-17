@@ -63,8 +63,16 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
                     container.productRepository.pullFromServer()
                     container.inventoryRepository.pullFromServer()
                 }
+                SyncStatus.reportSuccess()
             } catch (e: IOException) {
                 networkFailure = true
+            } catch (e: Exception) {
+                // Antes este catch no existía: cualquier fallo que no fuera IOException
+                // (respuesta del servidor con forma inesperada, error de Room, etc.)
+                // se propagaba fuera de doWork() y el pull quedaba silenciosamente sin
+                // aplicar en cada intento, sin ningún indicio visible para el usuario.
+                SyncStatus.reportError(e.message ?: e::class.java.simpleName)
+                return@withContext Result.failure()
             }
         }
 

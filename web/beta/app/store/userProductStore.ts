@@ -8,7 +8,7 @@ type State = {
   showProduct: Product;
   setProduct: (data: Product[]) => void;
   clearShowProduct: () => void;
-  fetchProduct: () => Promise<void>;
+  fetchProduct: (silent?: boolean) => Promise<void>;
   saveProduct: (data: Product) => Promise<boolean>;
   deleteProduct: (data: Product) => Promise<void>;
 };
@@ -23,18 +23,20 @@ export const userProductStore = create<State>((set, get) => ({
   setProduct: (data) => set({ product: data }),
   clearShowProduct: () => set({ showProduct: emptyProduct }),
 
-  fetchProduct: async () => {
+  // silent=true: usado por el refresco en vivo (WebSocket) para no interrumpir
+  // al usuario con el loader de pantalla completa por cambios de otros clientes.
+  fetchProduct: async (silent = false) => {
     const { showLoader, hideLoader } = useLoaderStore.getState();
-    showLoader();
+    if (!silent) showLoader();
     try {
       const res = await fetch(`${API_BASE_URL}/product`);
       if (!res.ok) throw new Error('Error al obtener productos');
       const data = await res.json();
       set({ product: data });
     } catch {
-      useToastStore.getState().showToast('Error al cargar productos', 'error');
+      if (!silent) useToastStore.getState().showToast('Error al cargar productos', 'error');
     } finally {
-      hideLoader();
+      if (!silent) hideLoader();
     }
   },
 

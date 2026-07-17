@@ -54,6 +54,7 @@ fun HomeScreen(
     val context = LocalContext.current
     val sessionState by viewModel.sessionState.collectAsState()
     val pendingCount by viewModel.pendingCount.collectAsState()
+    val syncError by viewModel.syncError.collectAsState()
 
     if (sessionState is SessionState.LoggedOut) {
         onLoggedOut()
@@ -88,6 +89,13 @@ fun HomeScreen(
                     Text(
                         if (pendingCount == 0) "Todo sincronizado" else "$pendingCount cambio(s) pendiente(s) de sincronizar"
                     )
+                    if (syncError != null) {
+                        Text(
+                            "Error al sincronizar: $syncError",
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
                     Button(
                         onClick = { SyncScheduler.triggerManualSync(context) },
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp)

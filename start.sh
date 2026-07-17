@@ -7,27 +7,27 @@ GRAY='\033[0;90m'
 WHITE='\033[0;97m'
 NC='\033[0m'
 
+# ── Versión ──────────────────────────────────────────────────────────────────
+APP_VERSION="dev"
+if [ -f "VERSION" ]; then
+  APP_VERSION=$(tr -d '[:space:]' < VERSION)
+fi
+
 # ── Banner ────────────────────────────────────────────────────────────────────
-printf "${CYAN}%s\n" ''
-printf "${CYAN}%s\n" '  ____  ___ ____ _____ ___ __  __    _    '
-printf "${CYAN}%s\n" ' / ___|_ _/ ___|_   _| __|  \/  |  / \   '
-printf "${CYAN}%s\n" ' \___ \| |\___ \ | | | _|| |\/| | / _ \  '
-printf "${CYAN}%s\n" '  ___) | | ___) || | | |__| |  | |/ ___ \ '
-printf "${CYAN}%s\n" ' |____/___|____/ |_| |____|_|  |_/_/   \_\'
-printf "${CYAN}%s\n" ''
-printf "${CYAN}%s\n" '  ____  ___ '
-printf "${CYAN}%s\n" ' |  _ \| __|'
-printf "${CYAN}%s\n" ' | |_) |  _|'
-printf "${CYAN}%s\n" ' |  _ <| |__'
-printf "${CYAN}%s\n" ' |_| \_\____|'
-printf "${CYAN}%s\n" ''
-printf "${CYAN}%s\n" '  ___ _  _ _   _ ___ _  _ _____ _   ___ ___ ___  ___ '
-printf "${CYAN}%s\n" ' |_ _| \| \ \ / / __| \| |_   _/_\ | _ \_ _/ _ \/ __|'
-printf "${CYAN}%s\n" '  | || .`|\ V /| _|| .`| | |/ _ \|   /| | (_) \__ \'
-printf "${CYAN}%s\n" ' |___|_|\_| \_/ |___|_|\_||_|/_/ \_\_|_\___\___/|___/'
-printf "${GREEN}%s\n" ''
-printf "${GREEN}%s\n" ' :: Sistema de Inventarios ::'
-printf "${NC}%s\n"   ''
+# Texto plano (sin arte ASCII grande): se lee correctamente en cualquier terminal.
+printf '\n'
+printf "${CYAN}%s\n${NC}" '============================================'
+printf "${CYAN}%s${NC}${GREEN}%s\n${NC}" '  Sistema de Inventarios  -  v' "$APP_VERSION"
+printf "${CYAN}%s\n${NC}" '============================================'
+printf '\n'
+
+# ── Crear .env desde .env.example si no existe ─────────────────────────────────
+# Los valores por defecto quedan empaquetados en el repo (.env.example); así el
+# primer arranque no requiere que el cliente cree/edite nada a mano.
+if [ ! -f ".env" ] && [ -f ".env.example" ]; then
+  cp ".env.example" ".env"
+  printf "${GREEN}%s\n${NC}" "[start] .env creado desde .env.example con valores por defecto."
+fi
 
 # ── Detección de IP WiFi ──────────────────────────────────────────────────────
 HOST_IP=$(ip -4 route get 8.8.8.8 2>/dev/null | grep -oP 'src \K[\d.]+' | head -1)

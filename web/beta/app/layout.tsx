@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Toast from "@/app/components/base/context/Toast";
 import "./globals.css";
 import Loader from "./components/base/context/Loader";
+import LiveSync from "./components/base/context/LiveSync";
 
 const appTitle = process.env.NEXT_PUBLIC_SITE_TITLE || '------';
 const appDescription = process.env.NEXT_PUBLIC_SITE_DESCRIPTION || '';
@@ -60,6 +61,7 @@ export default async function RootLayout({
         {/* Se inyecta en cada carga de página para que useLogo tome el valor actual */}
         <script dangerouslySetInnerHTML={{ __html: `window.__LOGO_URL__=${JSON.stringify(appLogo)};window.__SITE_TITLE__=${JSON.stringify(process.env.NEXT_PUBLIC_SITE_TITLE||'')};window.__SITE_CLIENT__=${JSON.stringify(process.env.NEXT_PUBLIC_SITE_CLIENT||'')}` }} />
         <Loader />
+        <LiveSync />
         {children}
         <Toast />
       </body>

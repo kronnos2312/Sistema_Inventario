@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # ── Stage 1: Android SDK + build ─────────────────────────────────────────────
 # Mismo JDK que el backend (eclipse-temurin:17), en vez de una imagen comunitaria
 # de Android SDK no oficial, para mantener reproducibilidad y control de versiones.
@@ -28,14 +29,23 @@ COPY gradlew gradlew.bat ./
 COPY gradle ./gradle
 COPY build.gradle.kts settings.gradle.kts gradle.properties ./
 COPY app/build.gradle.kts app/build.gradle.kts
-RUN chmod +x gradlew && ./gradlew --no-daemon help
+RUN chmod +x gradlew
+
+# Caché de dependencias de Gradle (~/.gradle) como cache mount de BuildKit: a
+# diferencia de una capa de imagen normal, sobrevive aunque "COPY app ./app" (más
+# abajo) invalide la caché de capas por un cambio de código — así un cambio de
+# una sola línea en el código Kotlin no vuelve a descargar Compose/Room/Retrofit/
+# CameraX/ML Kit (cientos de MB) en cada build, solo recompila lo necesario.
+RUN --mount=type=cache,target=/root/.gradle \
+    ./gradlew --no-daemon help
 
 COPY app ./app
 
 ARG BACKEND_DEFAULT_HOST=localhost
 ARG BACKEND_DEFAULT_PORT=8080
 
-RUN ./gradlew :app:assembleDebug --no-daemon --stacktrace \
+RUN --mount=type=cache,target=/root/.gradle \
+    ./gradlew :app:assembleDebug --no-daemon --stacktrace \
       -PdefaultBackendHost=${BACKEND_DEFAULT_HOST} \
       -PdefaultBackendPort=${BACKEND_DEFAULT_PORT}
 

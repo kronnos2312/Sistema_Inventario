@@ -1,8 +1,30 @@
 @echo off
 setlocal
 
+:: ── Versión ──────────────────────────────────────────────────────────────────
+set "APP_VERSION=dev"
+if exist "VERSION" (
+    set /p APP_VERSION=<VERSION
+)
+
 :: ── Banner ───────────────────────────────────────────────────────────────────
-powershell -NoProfile -Command "Write-Host ''; Write-Host '  ____  ___ ____ _____ ___ __  __    _    ' -ForegroundColor Cyan; Write-Host ' / ___|_ _/ ___|_   _| __|  \/  |  / \   ' -ForegroundColor Cyan; Write-Host ' \___ \| |\___ \ | | | _|| |\/| | / _ \  ' -ForegroundColor Cyan; Write-Host '  ___) | | ___) || | | |__| |  | |/ ___ \ ' -ForegroundColor Cyan; Write-Host ' |____/___|____/ |_| |____|_|  |_/_/   \_\' -ForegroundColor Cyan; Write-Host ''; Write-Host '  ____  ___ ' -ForegroundColor Cyan; Write-Host ' |  _ \| __|' -ForegroundColor Cyan; Write-Host ' | |_) |  _|' -ForegroundColor Cyan; Write-Host ' |  _ <| |__' -ForegroundColor Cyan; Write-Host ' |_| \_\____|' -ForegroundColor Cyan; Write-Host ''; Write-Host '  ___ _  _ _   _ ___ _  _ _____ _   ___ ___ ___  ___ ' -ForegroundColor Cyan; Write-Host ' |_ _| \| \ \ / / __| \| |_   _/_\ | _ \_ _/ _ \/ __|' -ForegroundColor Cyan; Write-Host '  | || .`|\ V /| _|| .`| | |/ _ \|   /| | (_) \__ \' -ForegroundColor Cyan; Write-Host ' |___|_|\_| \_/ |___|_|\_||_|/_/ \_\_|_\___\___/|___/' -ForegroundColor Cyan; Write-Host ''; Write-Host ' :: Sistema de Inventarios ::' -ForegroundColor Green; Write-Host ''"
+:: Texto plano (sin arte ASCII grande ni comandos PowerShell largos): se lee
+:: correctamente en cualquier consola, incluida cmd.exe clásica.
+echo.
+echo ============================================
+echo   Sistema de Inventarios  -  v%APP_VERSION%
+echo ============================================
+echo.
+
+:: ── Crear .env desde .env.example si no existe ──────────────────────────────
+:: Los valores por defecto quedan empaquetados en el repo (.env.example); así el
+:: primer arranque no requiere que el cliente cree/edite nada a mano.
+if not exist ".env" (
+    if exist ".env.example" (
+        copy /Y ".env.example" ".env" >nul
+        echo [start] .env creado desde .env.example con valores por defecto.
+    )
+)
 
 :: ── Detección de IP WiFi ────────────────────────────────────────────────────
 for /f "usebackq tokens=*" %%a in (`powershell -NoProfile -Command "$ip = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.PrefixOrigin -eq 'Dhcp' -and $_.InterfaceAlias -match 'Wi.Fi|WLAN|Wireless' -and $_.IPAddress -notmatch '^(127\.|169\.254\.)' } | Select-Object -First 1).IPAddress; if ($ip) { $ip } else { '' }"`) do set HOST_IP=%%a

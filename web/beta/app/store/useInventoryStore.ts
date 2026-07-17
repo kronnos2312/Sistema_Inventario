@@ -8,7 +8,7 @@ type State = {
   inventory: InventoryItem[];
   inventoryShow: InventoryItem;
   setInventory: (data: InventoryItem[]) => void;
-  fetchInventory: () => Promise<void>;
+  fetchInventory: (silent?: boolean) => Promise<void>;
   clearShowInventory: () => void;
   saveInventory: (data: InventoryItem) => Promise<boolean>;
   getOutInventory: (data: WInventory) => Promise<void>;
@@ -124,18 +124,20 @@ export const useInventoryStore = create<State>((set, get) => ({
     }
   },
 
-  fetchInventory: async () => {
+  // silent=true: usado por el refresco en vivo (WebSocket) para no interrumpir
+  // al usuario con el loader de pantalla completa por cambios de otros clientes.
+  fetchInventory: async (silent = false) => {
     const { showLoader, hideLoader } = useLoaderStore.getState();
-    showLoader();
+    if (!silent) showLoader();
     try {
       const res = await fetch(`${API_BASE_URL}/inventory`);
       if (!res.ok) throw new Error('Error al obtener inventario');
       const data = await res.json();
       set({ inventory: data });
     } catch {
-      useToastStore.getState().showToast('Error al cargar inventario', 'error');
+      if (!silent) useToastStore.getState().showToast('Error al cargar inventario', 'error');
     } finally {
-      hideLoader();
+      if (!silent) hideLoader();
     }
   },
 }));
