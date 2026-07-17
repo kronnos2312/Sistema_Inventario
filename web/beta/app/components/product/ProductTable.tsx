@@ -40,10 +40,11 @@ export default function ProductTable() {
 
   const filtered = product.filter(item => {
     const catName = item.category?.name ?? '';
-    const global = `${item.name} ${item.model} ${item.brand} ${catName}`.toLowerCase().includes(search.toLowerCase());
+    const modelName = item.model ?? '';
+    const global = `${item.name} ${modelName} ${item.brand} ${catName}`.toLowerCase().includes(search.toLowerCase());
     const col =
       item.name.toLowerCase().includes(filters.name.toLowerCase()) &&
-      item.model.toLowerCase().includes(filters.model.toLowerCase()) &&
+      modelName.toLowerCase().includes(filters.model.toLowerCase()) &&
       item.brand.toLowerCase().includes(filters.brand.toLowerCase()) &&
       catName.toLowerCase().includes(filters.category.toLowerCase());
     return global && col;

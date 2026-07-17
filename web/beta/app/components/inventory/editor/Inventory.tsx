@@ -471,7 +471,7 @@ export default function InventoryEditor({ initialData, onSave, onCancel }: Props
               <input
                 type="text"
                 name="model"
-                value={item.product.model}
+                value={item.product.model ?? ''}
                 onChange={handleProductField}
                 placeholder="Ej: TUF F15"
                 className={inputCls()}

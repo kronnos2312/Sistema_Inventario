@@ -156,7 +156,7 @@ export default function ProductEditor({ initialData, onSave, onCancel }: Props) 
         </Label>
         <input
           name="model"
-          value={item.model}
+          value={item.model ?? ''}
           onChange={handleChange}
           placeholder="Ej: MX Master 3S, TUF F15"
           className={inputCls()}

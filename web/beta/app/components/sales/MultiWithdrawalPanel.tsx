@@ -64,7 +64,7 @@ export default function MultiWithdrawalPanel({ onClose }: Props) {
       barcode: found.barcode,
       productName: found.product.name,
       productBrand: found.product.brand,
-      productModel: found.product.model,
+      productModel: found.product.model ?? '',
       price: Number(found.price),
       availableQty: qty,
       withdrawQty: qty,

@@ -4,6 +4,6 @@ export type Product = {
   id: number | "";
   name: string;
   brand: string;
-  model: string;
+  model: string | null;
   category: Category | null;
 };
