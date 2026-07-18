@@ -108,6 +108,7 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
                 if (remoteId != null) repo.pushDelete(remoteId)
                 repo.deleteLocal(op.localEntityId)
             }
+            OperationType.WITHDRAW -> {}
         }
     }
 
@@ -130,6 +131,7 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
                 if (remoteId != null) repo.pushDelete(remoteId)
                 repo.deleteLocal(op.localEntityId)
             }
+            OperationType.WITHDRAW -> {}
         }
     }
 
